@@ -33,13 +33,16 @@ export interface OsLogEntry {
   contrato_inicio: string; // 'YYYY-MM-DD'
   contrato_fim: string;
   tipo_os: 'envio_refil' | 'visita_tecnica';
-  os_field_ids?: OsFieldRef[];
+  os_field_ids?: OsFieldRef[] | string[];
   datas_geradas: unknown;
   total_os?: number;
   disparado_por: string;
   status: OsLogStatus;
   erro?: string | null;
   tentativas?: number;
+  // Migration 002: rastreabilidade Field
+  field_order_id?: string | null;
+  field_customer_id?: string | null;
 }
 
 export interface OsLogRow {
@@ -52,7 +55,7 @@ export interface OsLogRow {
   contrato_inicio: string;
   contrato_fim: string;
   tipo_os: 'envio_refil' | 'visita_tecnica';
-  os_field_ids: OsFieldRef[];
+  os_field_ids: OsFieldRef[] | string[];
   datas_geradas: unknown;
   total_os: number;
   disparado_por: string;
@@ -60,6 +63,9 @@ export interface OsLogRow {
   status: OsLogStatus;
   erro: string | null;
   tentativas: number;
+  // Migration 002: rastreabilidade Field
+  field_order_id: string | null;
+  field_customer_id: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -155,19 +161,32 @@ export async function markFailed(dealId: string, error: string): Promise<void> {
 }
 
 /**
- * Atualiza um log existente para `status='success'` e grava os IDs das OS.
- * A unique partial index `uq_log_deal` dispara aqui se já existir success pra esse deal.
- * Throws se nenhuma linha for atualizada.
+ * Atualiza um log existente para `status='success'` e grava os IDs das OS +
+ * (opcional) field_order_id e field_customer_id pra rastreabilidade reversa.
+ *
+ * A unique partial index `uq_log_deal` dispara aqui se já existir success pra
+ * esse deal. Throws se nenhuma linha for atualizada.
  */
-export async function markSuccess(dealId: string, osFieldIds: OsFieldRef[]): Promise<void> {
+export async function markSuccess(
+  dealId: string,
+  opts: {
+    osFieldIds: string[];
+    fieldOrderId?: string;
+    fieldCustomerId?: string;
+  },
+): Promise<void> {
+  const update: Record<string, unknown> = {
+    status: 'success',
+    os_field_ids: opts.osFieldIds,
+    total_os: opts.osFieldIds.length,
+    erro: null,
+  };
+  if (opts.fieldOrderId !== undefined) update.field_order_id = opts.fieldOrderId;
+  if (opts.fieldCustomerId !== undefined) update.field_customer_id = opts.fieldCustomerId;
+
   const { data, error: dbErr } = await supabase
     .from(TABLE)
-    .update({
-      status: 'success',
-      os_field_ids: osFieldIds,
-      total_os: osFieldIds.length,
-      erro: null,
-    })
+    .update(update)
     .eq('clint_deal_id', dealId)
     .neq('status', 'success')
     .select('id');
@@ -175,6 +194,22 @@ export async function markSuccess(dealId: string, osFieldIds: OsFieldRef[]): Pro
   if (!data || data.length === 0) {
     throw new Error(`markSuccess: no log row found for deal ${dealId}`);
   }
+}
+
+/**
+ * Lookup reverso: dado um `field_order_id` (ID da OS no Field Control),
+ * retorna o log correspondente — útil pra rastrear "esse order do Field
+ * veio de qual deal do Clint?".
+ */
+export async function findByFieldOrderId(fieldOrderId: string): Promise<OsLogRow | null> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('field_order_id', fieldOrderId)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as OsLogRow | null) ?? null;
 }
 
 // ─────────────────────────────────────────────────────────────
