@@ -5,106 +5,125 @@ import { clearFeriados, setupFeriados, utc } from './_helpers.js';
 beforeAll(() => setupFeriados());
 afterAll(() => clearFeriados());
 
-describe('calcularDatasPresencial', () => {
-  it('contrato 12 meses dia 15 (jan 2026): mantém dia da criação; ajusta só weekend/feriado', async () => {
+describe('calcularDatasPresencial (v3)', () => {
+  it('instalação dia comum (15/03/2026 dom, 6 meses): inicial 16/03 + recorrentes dia 01', async () => {
     const os = await calcularDatasPresencial({
-      contratoInicio: utc('2026-01-15'),
-      contratoFim: utc('2027-01-15'),
-    });
-    expect(os).toHaveLength(13);
-    expect(os.filter((o) => o.tipo === 'visita_tecnica_inicial')).toHaveLength(1);
-    expect(os.filter((o) => o.tipo === 'visita_tecnica_regular')).toHaveLength(12);
-    // Inicial: 2026-01-15 (qui) — dia útil, não muda
-    expect(os[0]).toMatchObject({ data: '2026-01-15', dataCalculada: '2026-01-15' });
-    // Última: 2027-01-15 (sex) — dia útil
-    expect(os.at(-1)?.data).toBe('2027-01-15');
-  });
-
-  it('contrato 12 meses dia 15: feb-15 cai em dom + carnaval segue → 18; nov-15 dom + feriado seg → 16', async () => {
-    const os = await calcularDatasPresencial({
-      contratoInicio: utc('2026-01-15'),
-      contratoFim: utc('2027-01-15'),
-    });
-    // fev: cálculo 02-15 dom → 02-16 seg (carnaval) → 02-17 ter (carnaval) → 02-18 qua
-    const fev = os.find((o) => o.dataCalculada === '2026-02-15');
-    expect(fev?.data).toBe('2026-02-18');
-    // nov: cálculo 11-15 dom (Proclamação) → 11-16 seg
-    const nov = os.find((o) => o.dataCalculada === '2026-11-15');
-    expect(nov?.data).toBe('2026-11-16');
-    // ago: cálculo 08-15 sab → seg 17 (dia útil)
-    const ago = os.find((o) => o.dataCalculada === '2026-08-15');
-    expect(ago?.data).toBe('2026-08-17');
-  });
-
-  it('início dia 31: clamp em fev + ajuste pra dia útil (sab/dom)', async () => {
-    const os = await calcularDatasPresencial({
-      contratoInicio: utc('2026-01-31'),
-      contratoFim: utc('2026-08-31'),
-    });
-    // Cálculo: jan31 sab, fev28 sab (clamp de 31), mar31 ter, abr30 qui (clamp), mai31 dom,
-    //          jun30 ter (clamp), jul31 sex, ago31 seg
-    // Efetiva: fev02 seg, mar02 seg, mar31 ter, abr30 qui, jun01 seg, jun30 ter, jul31 sex, ago31 seg
-    expect(os.map((o) => o.data)).toEqual([
-      '2026-02-02', '2026-03-02', '2026-03-31', '2026-04-30',
-      '2026-06-01', '2026-06-30', '2026-07-31', '2026-08-31',
-    ]);
-    expect(os).toHaveLength(8);
-    // Verifica que o clamp ainda é registrado na descricao
-    const fev = os.find((o) => o.dataCalculada === '2026-02-28');
-    expect(fev?.descricao).toContain('ajustado de 31 para 28');
-  });
-
-  it('ano bissexto: dia 31 cai em fev 29 (clamp), e ajustado pra dia útil se preciso', async () => {
-    const os = await calcularDatasPresencial({
-      contratoInicio: utc('2024-01-31'),
-      contratoFim: utc('2024-03-31'),
-    });
-    // 2024-02-29 (clamp do 31) = qui — dia útil ✓
-    const fev = os.find((o) => o.tipo === 'visita_tecnica_regular' && o.dataCalculada === '2024-02-29');
-    expect(fev?.data).toBe('2024-02-29');
-    expect(fev?.descricao).toContain('ajustado de 31 para 29');
-  });
-
-  it('contrato 6 meses (jul 2026): mantém dia 15 quando dia útil', async () => {
-    const os = await calcularDatasPresencial({
-      contratoInicio: utc('2026-07-15'),
-      contratoFim: utc('2027-01-15'),
+      contratoInicio: utc('2026-03-15'),
+      contratoFim: utc('2026-09-15'),
     });
     expect(os).toHaveLength(7);
-    // Cálculo: jul15 qua, ago15 sab, set15 ter, out15 qui, nov15 dom (fer), dez15 ter, jan15/27 sex
-    // Efetiva: jul15, ago17 (sab→seg), set15, out15, nov16, dez15, jan15
-    expect(os.map((o) => o.data)).toEqual([
-      '2026-07-15', '2026-08-17', '2026-09-15', '2026-10-15',
-      '2026-11-16', '2026-12-15', '2027-01-15',
+
+    // Inicial: 15/03 dom → 16/03 seg
+    expect(os[0]).toEqual({
+      tipo: 'visita_tecnica_inicial',
+      data: '2026-03-16',
+      dataCalculada: '2026-03-15',
+      descricao: 'Visita técnica inicial (instalação)',
+    });
+
+    // Recorrentes: calc sempre dia 01 do mês seguinte
+    expect(os.slice(1).map((o) => o.dataCalculada)).toEqual([
+      '2026-04-01', '2026-05-01', '2026-06-01', '2026-07-01', '2026-08-01', '2026-09-01',
+    ]);
+    // Efetivas: 01/04 qua, 01/05 sex(fer)→04/05 seg, 01/06 seg, 01/07 qua,
+    //           01/08 sáb→03/08 seg, 01/09 ter
+    expect(os.slice(1).map((o) => o.data)).toEqual([
+      '2026-04-01', '2026-05-04', '2026-06-01', '2026-07-01', '2026-08-03', '2026-09-01',
     ]);
   });
 
-  it('mês ímpar vs par: paridade não afeta presencial (contagem igual)', async () => {
-    const impar = await calcularDatasPresencial({
-      contratoInicio: utc('2026-01-10'),
-      contratoFim: utc('2026-06-10'),
+  it('instalação dia 01 (01/06/2026 seg, 3 meses): inicial não desloca; recorrentes dia 01', async () => {
+    const os = await calcularDatasPresencial({
+      contratoInicio: utc('2026-06-01'),
+      contratoFim: utc('2026-09-01'),
     });
-    const par = await calcularDatasPresencial({
-      contratoInicio: utc('2026-02-10'),
-      contratoFim: utc('2026-07-10'),
-    });
-    expect(impar).toHaveLength(6);
-    expect(par).toHaveLength(6);
-    expect(impar.every((o) => o.tipo.startsWith('visita_tecnica_'))).toBe(true);
-    expect(par.every((o) => o.tipo.startsWith('visita_tecnica_'))).toBe(true);
+    expect(os).toHaveLength(4);
+    expect(os[0]).toMatchObject({ data: '2026-06-01', dataCalculada: '2026-06-01' });
+    expect(os.slice(1).map((o) => o.dataCalculada)).toEqual(['2026-07-01', '2026-08-01', '2026-09-01']);
+    // 01/07 qua, 01/08 sáb→03/08 seg, 01/09 ter
+    expect(os.slice(1).map((o) => o.data)).toEqual(['2026-07-01', '2026-08-03', '2026-09-01']);
   });
 
-  it('cruzamento de ano (nov 2026 → abr 2027): dia 20 mantido quando dia útil', async () => {
+  it('instalação dia 31 (31/01/2026 sáb): inicial 02/02; primeira recorrente 02/03 (não 02/02)', async () => {
     const os = await calcularDatasPresencial({
-      contratoInicio: utc('2026-11-20'),
-      contratoFim: utc('2027-04-20'),
+      contratoInicio: utc('2026-01-31'),
+      contratoFim: utc('2026-04-30'),
     });
-    expect(os).toHaveLength(6);
-    // Cálculo: nov20 sex (fer Consc), dez20 dom, jan20 qua, fev20 sab, mar20 sab, abr20 ter
-    // Efetiva: nov23 (20=fer→21sab→22dom→23seg), dez21, jan20, fev22, mar22, abr20
-    expect(os.map((o) => o.data)).toEqual([
-      '2026-11-23', '2026-12-21', '2027-01-20', '2027-02-22',
-      '2027-03-22', '2027-04-20',
+    expect(os).toHaveLength(3);
+    // Inicial: 31/01 sáb → 02/02 seg
+    expect(os[0]).toMatchObject({ data: '2026-02-02', dataCalculada: '2026-01-31' });
+    // Primeira recorrente PULA fevereiro (calc 01/02 → ef 02/02 colide com inicial)
+    // → calc 01/03 dom → ef 02/03 seg
+    expect(os[1]).toMatchObject({
+      tipo: 'visita_tecnica_regular',
+      data: '2026-03-02',
+      dataCalculada: '2026-03-01',
+    });
+    // Segunda recorrente: 01/04 qua
+    expect(os[2]).toMatchObject({ data: '2026-04-01', dataCalculada: '2026-04-01' });
+  });
+
+  it('detecção de colisão explícita: instalação 31/01/2026, primeira recorrente pula fev e marca descrição', async () => {
+    const os = await calcularDatasPresencial({
+      contratoInicio: utc('2026-01-31'),
+      contratoFim: utc('2026-04-30'),
+    });
+    // A primeira recorrente (os[1]) deve ter calc=01/03 (fevereiro pulado),
+    // não calc=01/02 (que daria a mesma efetiva da inicial)
+    expect(os[1]?.dataCalculada).toBe('2026-03-01');
+    expect(os[1]?.dataCalculada).not.toBe('2026-02-01');
+    // E a descrição deve marcar o ajuste pra triagem da CS
+    expect(os[1]?.descricao).toContain('colisão');
+    expect(os[1]?.descricao).toBe(
+      'Visita técnica mensal (data ajustada pra evitar colisão com instalação)',
+    );
+    // Demais recorrentes voltam à descrição padrão (sem marca de colisão)
+    expect(os[2]?.descricao).toBe('Visita técnica mensal');
+  });
+
+  it('instalação em FDS (14/03/2026 sáb): inicial 16/03 seg (pula domingo)', async () => {
+    const os = await calcularDatasPresencial({
+      contratoInicio: utc('2026-03-14'),
+      contratoFim: utc('2026-05-30'),
+    });
+    // Inicial: 14/03 sáb → 15/03 dom → 16/03 seg
+    expect(os[0]).toMatchObject({ data: '2026-03-16', dataCalculada: '2026-03-14' });
+    // Recorrentes: firstDayOfNextMonth(16/03) = 01/04 qua, depois 01/05 sex fer → 04/05 seg
+    expect(os.slice(1).map((o) => o.data)).toEqual(['2026-04-01', '2026-05-04']);
+    expect(os).toHaveLength(3);
+  });
+
+  it('recorrente dia 01 cai em 01/01/2027 (Confraternização) + fim de semana: vira 04/01/2027', async () => {
+    const os = await calcularDatasPresencial({
+      contratoInicio: utc('2026-12-15'), // ter, dia útil
+      contratoFim: utc('2027-02-15'),
+    });
+    // Inicial: 15/12/2026 ter → 15/12
+    expect(os[0]).toMatchObject({ data: '2026-12-15', dataCalculada: '2026-12-15' });
+    // Recorrente 1: 01/01/2027 sex feriado → 02/01 sáb → 03/01 dom → 04/01 seg
+    expect(os[1]).toMatchObject({
+      data: '2027-01-04',
+      dataCalculada: '2027-01-01',
+    });
+    // Recorrente 2: 01/02/2027 seg
+    expect(os[2]).toMatchObject({ data: '2027-02-01', dataCalculada: '2027-02-01' });
+    expect(os).toHaveLength(3);
+  });
+
+  it('cruzamento de ano (15/11/2026 dom + fer Proclamação → fim 15/03/2027)', async () => {
+    const os = await calcularDatasPresencial({
+      contratoInicio: utc('2026-11-15'),
+      contratoFim: utc('2027-03-15'),
+    });
+    expect(os).toHaveLength(5);
+    // Inicial: 15/11 dom + feriado → 16/11 seg
+    expect(os[0]).toMatchObject({ data: '2026-11-16', dataCalculada: '2026-11-15' });
+    // Recorrentes: 01/12 ter, 01/01/2027 sex fer→04/01 seg, 01/02 seg, 01/03 seg
+    expect(os.slice(1).map((o) => o.dataCalculada)).toEqual([
+      '2026-12-01', '2027-01-01', '2027-02-01', '2027-03-01',
+    ]);
+    expect(os.slice(1).map((o) => o.data)).toEqual([
+      '2026-12-01', '2027-01-04', '2027-02-01', '2027-03-01',
     ]);
   });
 

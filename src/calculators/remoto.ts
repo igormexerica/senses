@@ -1,23 +1,35 @@
 /**
- * Cálculo de datas — Onboarding Remoto.
- * Spec: integracao-clint-field-senses.md § 4 + regras CS confirmadas 2026-05-22.
+ * Cálculo de datas — Onboarding Remoto (regra v3).
  *
- * Lógica de cálculo:
- * - Mês ímpar: primeiro envio na data do contrato (calendário ímpar).
- * - Mês par:   gera DUAS OS — envio inicial na data do contrato + equalização
- *              no dia 1º do próximo mês (ímpar). Pendência A: confirmada.
- * - A partir do primeiro envio "no calendário ímpar", +60d até contratoFim.
+ * Doc autoritativo: docs/decisoes/2026-05-22-regras-finais-calculators.md
  *
- * Regras CS aplicadas sobre cada data calculada:
- * 1. Normalizar pro dia 01 do mês (regra de logística — envio de refil não
- *    precisa de dia exato, CS organiza a expedição no início do mês).
- * 2. Se cair em sábado/domingo/feriado, avançar pro próximo dia útil.
+ * Substitui a regra v2 do commit 7b15462 (que aplicava dia 01 a tudo).
  *
- * `dataCalculada` é preservada em cada OS pra auditoria no log do Supabase.
+ * Lógica:
+ * 1. **Inicial:** `nextBusinessDay(contratoInicio)`. SEM dia 01.
+ * 2. **Equalização** (somente se mês de fechamento é PAR):
+ *    - calc = `contratoInicio + 1 mês` (via clamp, próximo mês = ímpar)
+ *    - efetiva = `nextBusinessDay(calc)`
+ *    - descrição enriquecida com aviso ⚠️ pra CS conferir qtde reduzida.
+ * 3. **Recorrentes** (a cada 2 meses, no dia do fechamento):
+ *    - Mês ímpar → âncora = `contratoInicio`
+ *    - Mês par   → âncora = `contratoInicio + 1 mês` (= calc da equalização)
+ *    - Sequência: âncora + 2N meses (N=1,2,3...) via `addMonthsClampedUTC`
+ *      pra preservar dia 31 nos meses longos (jan 31 → mar 31 → mai 31 →
+ *      jul 31 → set 30 clamp → nov 30 clamp → jan 31 de novo).
+ *    - Cada via `nextBusinessDay`.
+ *
+ * Quantidade de refil NÃO é modelada — CS gerencia no Field.
+ *
+ * `dataCalculada` é preservada em cada OS pra auditoria no Supabase.
  */
 import type { OSToCreate } from '../lib/types.js';
-import { nextBusinessDay, toFirstDayOfMonthUTC } from './_business-day.js';
-import { addDaysUTC, firstDayOfNextMonthUTC, formatDateUTC } from './_date.js';
+import { nextBusinessDay } from './_business-day.js';
+import { addMonthsClampedUTC, formatDateUTC } from './_date.js';
+
+/** Descrição EXATA da equalização (CS depende desse texto pra triagem). */
+const DESC_EQUALIZACAO =
+  '⚠️ EQUALIZAÇÃO — Cliente iniciou em mês par. Conferir qtde reduzida com CS.';
 
 export interface CalcularRemotoInput {
   contratoInicio: Date;
@@ -32,33 +44,31 @@ export async function calcularDatasRemoto({
     throw new Error('contratoFim deve ser >= contratoInicio');
   }
 
+  const ehImpar = (contratoInicio.getUTCMonth() + 1) % 2 === 1;
   const osList: OSToCreate[] = [];
-  const mesInicio1Based = contratoInicio.getUTCMonth() + 1;
-  const ehImpar = mesInicio1Based % 2 === 1;
 
+  // 1. Inicial — sempre na data do fechamento (via dia útil)
   osList.push(
     await buildOs('envio_refil_inicial', contratoInicio, 'Envio inicial (conclusão do onboarding)'),
   );
 
-  let dataPrimeiroEnvio: Date;
+  // 2. Equalização (mês par) — define a âncora pras recorrentes
+  let ancora: Date;
   if (ehImpar) {
-    dataPrimeiroEnvio = contratoInicio;
+    ancora = contratoInicio;
   } else {
-    const proximoImpar = firstDayOfNextMonthUTC(contratoInicio);
-    osList.push(
-      await buildOs(
-        'envio_refil_equalizacao',
-        proximoImpar,
-        'Envio de equalização (entrada no calendário ímpar)',
-      ),
-    );
-    dataPrimeiroEnvio = proximoImpar;
+    const equalizacao = addMonthsClampedUTC(contratoInicio, 1);
+    osList.push(await buildOs('envio_refil_equalizacao', equalizacao, DESC_EQUALIZACAO));
+    ancora = equalizacao;
   }
 
-  let proxima = addDaysUTC(dataPrimeiroEnvio, 60);
-  while (proxima.getTime() <= contratoFim.getTime()) {
-    osList.push(await buildOs('envio_refil_regular', proxima, 'Envio de refil recorrente'));
-    proxima = addDaysUTC(proxima, 60);
+  // 3. Recorrentes — âncora + 2N meses (preserva dia 31 via clamp)
+  let mesesAdiante = 2;
+  let proximaCalc = addMonthsClampedUTC(ancora, mesesAdiante);
+  while (proximaCalc.getTime() <= contratoFim.getTime()) {
+    osList.push(await buildOs('envio_refil_regular', proximaCalc, 'Envio de refil recorrente'));
+    mesesAdiante += 2;
+    proximaCalc = addMonthsClampedUTC(ancora, mesesAdiante);
   }
 
   return osList;
@@ -69,10 +79,7 @@ async function buildOs(
   dataCalculada: Date,
   descricao: string,
 ): Promise<OSToCreate> {
-  // 1. Normaliza pro dia 01 do mês (regra do CS pro Remoto)
-  // 2. Ajusta pro próximo dia útil
-  const diaUm = toFirstDayOfMonthUTC(dataCalculada);
-  const efetiva = await nextBusinessDay(diaUm);
+  const efetiva = await nextBusinessDay(dataCalculada);
   return {
     tipo,
     data: formatDateUTC(efetiva),

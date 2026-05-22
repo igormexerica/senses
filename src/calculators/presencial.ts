@@ -1,22 +1,36 @@
 /**
- * Cálculo de datas — Onboarding Presencial.
- * Spec: integracao-clint-field-senses.md § 5 + regras CS confirmadas 2026-05-22.
+ * Cálculo de datas — Onboarding Presencial (regra v3.1).
  *
- * Lógica de cálculo:
- * - Visita inicial na data do contrato.
- * - Próximas visitas mensais ancoradas no dia do contrato (não vai pro dia 01).
- * - Quando o dia não existe no mês alvo (ex: 31 em fev), desliza pro último dia
- *   do mês via clamp. Anchor preservado: jan 31 → fev 28 → mar 31 → abr 30.
+ * Doc autoritativo: docs/decisoes/2026-05-22-regras-finais-calculators.md
  *
- * Regra CS aplicada sobre cada data calculada:
- * - Se cair em sábado/domingo/feriado, avançar pro próximo dia útil.
- *   (Diferente do Remoto: presencial NÃO normaliza pro dia 01.)
+ * Substitui a regra v2 do commit 7b15462 (que mantinha o dia da criação
+ * em todas as recorrentes, sem normalizar pro dia 01).
+ *
+ * Lógica:
+ * 1. **Visita inicial (instalação):** `nextBusinessDay(contratoInicio)`.
+ * 2. **Primeira recorrente:** calc = `firstDayOfNextMonth(contratoInicio)`,
+ *    efetiva = `nextBusinessDay(calc)`. Se a efetiva colidir com a efetiva
+ *    da inicial (caso típico: instalação 31/01 sáb → ef 02/02; primeira
+ *    calc 01/02 dom → ef 02/02 = mesma data), avança 1 mês: calc =
+ *    `firstDayOfNextMonth(calc)`, efetiva = `nextBusinessDay(calc)`.
+ *    A descrição da OS pulada indica "data ajustada pra evitar colisão".
+ * 3. **Demais recorrentes:** calc = `firstDayOfNextMonth(anterior_calc)`,
+ *    efetiva = `nextBusinessDay(calc)`. Mensal até `contratoFim`.
+ *
+ * **Por que basear a primeira recorrente em `contratoInicio` (calc fixo) e
+ * não na efetiva da inicial:** evita drift se o calendário de feriados mudar.
+ * A data calculada agora depende apenas do contrato; só a efetiva move em
+ * função de weekend/feriado. Recorrentes de clientes antigos não mudam
+ * silenciosamente quando a tabela de feriados é atualizada.
  *
  * `dataCalculada` é preservada em cada OS pra auditoria.
  */
 import type { OSToCreate } from '../lib/types.js';
 import { nextBusinessDay } from './_business-day.js';
-import { addMonthsClampedUTC, formatDateUTC } from './_date.js';
+import { firstDayOfNextMonthUTC, formatDateUTC } from './_date.js';
+
+const DESC_REGULAR = 'Visita técnica mensal';
+const DESC_REGULAR_SKIP = 'Visita técnica mensal (data ajustada pra evitar colisão com instalação)';
 
 export interface CalcularPresencialInput {
   contratoInicio: Date;
@@ -32,54 +46,51 @@ export async function calcularDatasPresencial({
   }
 
   const osList: OSToCreate[] = [];
-  const diaAncoragem = contratoInicio.getUTCDate();
 
-  osList.push(
-    await buildOs(
-      'visita_tecnica_inicial',
-      contratoInicio,
-      'Visita técnica inicial (conclusão do onboarding presencial)',
-      diaAncoragem,
-    ),
-  );
+  // 1. Visita inicial (instalação)
+  const inicialEfetiva = await nextBusinessDay(contratoInicio);
+  osList.push({
+    tipo: 'visita_tecnica_inicial',
+    data: formatDateUTC(inicialEfetiva),
+    dataCalculada: formatDateUTC(contratoInicio),
+    descricao: 'Visita técnica inicial (instalação)',
+  });
 
-  // Ancorar sempre na data original + N meses pra preservar o dia da ancoragem
-  // nos meses longos (jan 31 → fev 28 → mar 31, não fev 28 → mar 28).
-  let mesesAdiante = 1;
-  let proxima = addMonthsClampedUTC(contratoInicio, mesesAdiante);
-  while (proxima.getTime() <= contratoFim.getTime()) {
-    osList.push(
-      await buildOs(
-        'visita_tecnica_regular',
-        proxima,
-        descRegular(diaAncoragem, proxima.getUTCDate()),
-        diaAncoragem,
-      ),
-    );
-    mesesAdiante += 1;
-    proxima = addMonthsClampedUTC(contratoInicio, mesesAdiante);
+  // 2. Primeira recorrente: dia 01 do mês seguinte ao contratoInicio.
+  // Se a efetiva colidir com a efetiva da inicial, pula 1 mês.
+  let calcRec = firstDayOfNextMonthUTC(contratoInicio);
+  let efetRec = await nextBusinessDay(calcRec);
+  let descricaoPrimeira = DESC_REGULAR;
+
+  if (efetRec.getTime() === inicialEfetiva.getTime()) {
+    calcRec = firstDayOfNextMonthUTC(calcRec);
+    efetRec = await nextBusinessDay(calcRec);
+    descricaoPrimeira = DESC_REGULAR_SKIP;
+  }
+
+  if (calcRec.getTime() <= contratoFim.getTime()) {
+    osList.push({
+      tipo: 'visita_tecnica_regular',
+      data: formatDateUTC(efetRec),
+      dataCalculada: formatDateUTC(calcRec),
+      descricao: descricaoPrimeira,
+    });
+
+    // 3. Demais recorrentes
+    let anteriorCalc = calcRec;
+    while (true) {
+      const proximaCalc = firstDayOfNextMonthUTC(anteriorCalc);
+      if (proximaCalc.getTime() > contratoFim.getTime()) break;
+      const proximaEfet = await nextBusinessDay(proximaCalc);
+      osList.push({
+        tipo: 'visita_tecnica_regular',
+        data: formatDateUTC(proximaEfet),
+        dataCalculada: formatDateUTC(proximaCalc),
+        descricao: DESC_REGULAR,
+      });
+      anteriorCalc = proximaCalc;
+    }
   }
 
   return osList;
-}
-
-function descRegular(diaAncoragem: number, diaResultante: number): string {
-  return diaResultante !== diaAncoragem
-    ? `Visita técnica mensal (dia ajustado de ${diaAncoragem} para ${diaResultante})`
-    : 'Visita técnica mensal';
-}
-
-async function buildOs(
-  tipo: OSToCreate['tipo'],
-  dataCalculada: Date,
-  descricao: string,
-  _diaAncoragem: number,
-): Promise<OSToCreate> {
-  const efetiva = await nextBusinessDay(dataCalculada);
-  return {
-    tipo,
-    data: formatDateUTC(efetiva),
-    dataCalculada: formatDateUTC(dataCalculada),
-    descricao,
-  };
 }
