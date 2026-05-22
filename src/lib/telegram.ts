@@ -9,7 +9,11 @@ export class TelegramNotifier {
   constructor(opts: { botToken?: string; gestorChatId?: string } = {}) {
     const env = loadEnv();
     const token = opts.botToken ?? env.TELEGRAM_BOT_TOKEN;
-    this.gestorChatId = opts.gestorChatId ?? env.TELEGRAM_CHAT_ID_GESTOR_CS;
+    const chatId = opts.gestorChatId ?? env.TELEGRAM_CHAT_ID_GESTOR_CS;
+    if (!token) throw new Error('TELEGRAM_BOT_TOKEN ausente — configure no .env ou passe via opts.botToken');
+    if (!chatId)
+      throw new Error('TELEGRAM_CHAT_ID_GESTOR_CS ausente — configure no .env ou passe via opts.gestorChatId');
+    this.gestorChatId = chatId;
     this.http = axios.create({
       baseURL: `https://api.telegram.org/bot${token}`,
       timeout: 10_000,

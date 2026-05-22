@@ -68,6 +68,12 @@ export interface OsLogRow {
 
 const env = loadEnv();
 
+if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+  throw new Error(
+    'Supabase env ausente: SUPABASE_URL e SUPABASE_SERVICE_KEY são obrigatórios pra importar este módulo.',
+  );
+}
+
 export const supabase: SupabaseClient = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
