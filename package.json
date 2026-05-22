@@ -1,0 +1,28 @@
+{
+  "name": "senses-os-automation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Automação de OS recorrentes integrando Clint CRM e Field Control via n8n",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "vitest",
+    "dev": "tsx watch",
+    "discover-schema": "tsx src/scripts/discover-field-schema.ts",
+    "e2e": "tsx src/scripts/e2e-test.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  }
+}
