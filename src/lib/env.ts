@@ -33,6 +33,13 @@ const EnvSchema = z.object({
 
   TELEGRAM_BOT_TOKEN: optionalString,
   TELEGRAM_CHAT_ID_GESTOR_CS: optionalString,
+
+  // Microserviço HTTP (Fastify). Obrigatórios pra subir a API, mas opcionais
+  // pra scripts isolados (discover-schema, calculators standalone).
+  API_INTERNAL_KEY: optionalString,
+  API_PORT: z.preprocess(emptyToUndef, z.coerce.number().int().positive().default(3000)),
+  API_HOST: z.preprocess(emptyToUndef, z.string().min(1).default('0.0.0.0')),
+  NODE_ENV: z.preprocess(emptyToUndef, z.enum(['development', 'production', 'test']).default('development')),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

@@ -1,0 +1,22 @@
+services:
+  senses-os-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: senses-os-api:latest
+    container_name: senses-os-api
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      API_PORT: 3000
+      API_HOST: 0.0.0.0
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
