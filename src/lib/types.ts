@@ -62,7 +62,8 @@ export type OSType =
 
 export interface OSToCreate {
   tipo: OSType;
-  data: string; // 'YYYY-MM-DD'
+  data: string;              // 'YYYY-MM-DD' — data efetiva que vai pro Field
+  dataCalculada?: string;    // data teórica antes de normalização (dia 01 / dia útil)
   descricao: string;
 }
 
