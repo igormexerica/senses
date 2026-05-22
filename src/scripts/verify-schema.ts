@@ -2,6 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { loadEnv } from '../lib/env.js';
 
 const env = loadEnv();
+if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+  throw new Error('SUPABASE_URL e SUPABASE_SERVICE_KEY são obrigatórios');
+}
 const sb = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY);
 
 // Insere um log de teste com os novos campos
