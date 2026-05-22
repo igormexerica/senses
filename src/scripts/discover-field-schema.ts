@@ -25,36 +25,36 @@ interface Probe {
 
 const probes: Probe[] = [
   {
-    label: 'Clients (amostra)',
-    path: '/clients',
+    label: 'Customers (amostra)',
+    path: '/customers',
     params: { limit: 3 },
     maxItems: 3,
-    hint: 'Confirme: nome real do campo de documento (document | cnpj | cpf_cnpj) e estrutura de address.',
+    hint: 'Confirme: nome real do campo de documento (document | cnpj | cpf_cnpj) e estrutura de endereço (locations?).',
   },
   {
-    label: 'Service Orders (amostra)',
-    path: '/service-orders',
+    label: 'Orders (amostra)',
+    path: '/orders',
     params: { limit: 3 },
     maxItems: 3,
-    hint: 'Confirme: nomes reais de type, scheduled_date, responsible_id, tags, status. Precisa ter ≥1 OS na conta.',
+    hint: 'Confirme: nomes reais de customer_id, service_id, scheduled_date, employee_id, status. Precisa ter ≥1 OS na conta.',
   },
   {
-    label: 'Tipos de OS',
-    path: '/tipos-os',
+    label: 'Services (tipos de OS / serviços oferecidos)',
+    path: '/services',
     maxItems: 20,
-    hint: 'Endpoint especulativo. Se 404, tente /tipos-servico, /service-types, /tipos.',
+    hint: 'Catálogo de serviços da empresa. Vai precisar dos IDs pra criar OS (campo `type` ou `service_id`).',
   },
   {
-    label: 'Colaboradores (técnicos)',
-    path: '/colaboradores',
+    label: 'Employees (colaboradores / técnicos)',
+    path: '/employees',
     maxItems: 30,
-    hint: 'Endpoint especulativo. Se 404, tente /users, /tecnicos, /staff. Vai precisar dos IDs pra responsible_id.',
+    hint: 'Lista de técnicos. Vai precisar dos IDs pra responsible_id / employee_id.',
   },
   {
-    label: 'Etiquetas (tags)',
-    path: '/etiquetas',
+    label: 'Labels (etiquetas / tags)',
+    path: '/labels',
     maxItems: 30,
-    hint: 'Endpoint especulativo. Se 404, tente /tags, /labels.',
+    hint: 'Etiquetas disponíveis. Vai precisar pra marcar OS com "onboarding_remoto", "recorrencia_automatica", etc.',
   },
 ];
 

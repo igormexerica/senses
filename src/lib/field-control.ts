@@ -2,63 +2,119 @@ import axios, { type AxiosInstance } from 'axios';
 import { loadEnv } from './env.js';
 import { withRetry } from './retry.js';
 
-const BASE_URL = 'https://api.fieldcontrol.com.br/v3';
+// Base URL real conforme https://developers.fieldcontrol.com.br/ (a spec interna
+// do projeto referenciava api.fieldcontrol.com.br/v3, que não existe).
+const BASE_URL = 'https://carchost.fieldcontrol.com.br';
 
 // ─────────────────────────────────────────────────────────────
-// Tipos — campos exatos dependem da conta. Marcações "VALIDAR"
-// indicam pontos a confirmar pelo script `discover-schema`.
+// Tipos — confirmados via discover-schema 2026-05-22.
+// IDs são opacos (formato base64), tratar como strings.
 // ─────────────────────────────────────────────────────────────
+
+export interface FieldAddress {
+  zipCode?: string;
+  street?: string;
+  number?: string;
+  neighborhood?: string | null;
+  complement?: string | null;
+  city: string;
+  state: string;
+  formattedAddress?: string;
+  coords: {
+    latitude: number;
+    longitude: number;
+  };
+}
 
 export interface FieldClient {
   id: string;
-  name: string;                       // VALIDAR: nome real do campo a confirmar
-  document: string;                   // VALIDAR: pode ser 'document' | 'cnpj' | 'cpf_cnpj'
-  phone?: string;
-  email?: string;
-  address?: Record<string, unknown>;
-  custom_fields?: Record<string, unknown>;
-  [key: string]: unknown;             // resto da estrutura — ver discover-schema
+  name: string;
+  code: string | null;
+  notes: string | null;
+  documentNumber: string | null;      // NÃO é `document` — é `documentNumber`
+  primaryLocation: { id: string } | null;
+  archived: boolean;
+  createdAt: string;
+  external: { id: string | null };
+  contact: {
+    email: string | null;
+    phone: string | null;
+  };
+  address: FieldAddress;
+  statistics?: Record<string, unknown>;
 }
 
 export interface FieldServiceOrder {
   id: string;
-  client_id: string;                  // VALIDAR: pode ser 'client_id' | 'cliente_id'
-  type?: string;                      // VALIDAR: pode ser 'type' | 'tipo' | 'tipo_os' | 'tipo_servico_id'
-  scheduled_date?: string;            // VALIDAR: pode ser 'scheduled_date' | 'data_agendada' | 'data_inicio'
-  responsible_id?: string;            // VALIDAR: pode ser 'responsible_id' | 'colaborador_id' | 'tecnico_id'
-  status?: string;
-  description?: string;
-  tags?: string[];                    // VALIDAR: pode ser 'tags' | 'etiquetas' | array de IDs
-  custom_fields?: Record<string, unknown>;
-  [key: string]: unknown;
+  link: string;
+  archived: boolean;
+  identifier: string;
+  description: string;
+  productsTotalValue: number;
+  servicesTotalValue: number;
+  totalValue: number;
+  deadlineContract: string | null;    // possivelmente "prazo final" — investigar uso pra agendamento
+  createdAt: string;
+  updatedAt: string;
+  metadata: Record<string, unknown>;
+  external: { id: string | null };
+  customer: { id: string };           // referência ao /customers/:id
+  service: { id: string };            // referência ao /services/:id
+  address: FieldAddress;
+  ticket: { id: string } | null;
+  location: { id: string };
+  // ATENÇÃO: API GET não retorna scheduled_date nem employee_id/responsible nem
+  // status nem labels. Esses ou (a) só existem no POST e ficam escondidos, ou
+  // (b) precisam de endpoint diferente (não documentado publicamente).
+  // Decisão pendente — ver bloco "PENDENTE" em CreateOSInput.
 }
 
+// ─────────────────────────────────────────────────────────────
+// INPUTS — schemas baseados na doc oficial (POST /customers) e em
+// inferência (POST /orders, doc truncada).
+// ─────────────────────────────────────────────────────────────
+
 export interface CreateClientInput {
-  name: string;                       // VALIDAR
-  document: string;                   // VALIDAR
-  phone?: string;
-  email?: string;
-  address?: {
+  // Obrigatórios pela doc: name, address.city, address.state, address.coords.*
+  name: string;
+  code?: string;
+  documentNumber?: string;
+  notes?: string;
+  external?: { id?: string };
+  address: {
+    zipCode?: string;
     street?: string;
-    city?: string;
-    state?: string;
-    [key: string]: unknown;
+    number?: string;
+    neighborhood?: string;
+    complement?: string;
+    city: string;
+    state: string;
+    coords: {
+      latitude: number;
+      longitude: number;
+    };
   };
-  custom_fields?: Record<string, unknown>;
 }
 
 export interface CreateOSInput {
-  client_id: string;                  // VALIDAR
-  type: string;                       // VALIDAR — nome do campo E formato (string vs ID)
-  scheduled_date: string;             // VALIDAR — formato 'YYYY-MM-DD' ou ISO completo
+  // PENDENTE: schema completo do POST /orders não está na doc pública.
+  // Campos confirmados via GET: customer.id, service.id, description, address.
+  // Campos especulados (a confirmar via POST de teste com cancelamento):
+  //   - data agendada (talvez `scheduledDate` ou `deadlineContract`)
+  //   - colaborador/técnico (talvez `employee.id` ou `assignedTo`)
+  //   - tags/labels (talvez via POST /orders/:id/labels após criar)
+  customer: { id: string };
+  service: { id: string };
   description: string;
-  responsible_id: string;             // VALIDAR — nome do campo E se é ID do colaborador
-  tags?: string[];                    // VALIDAR — pode ser nomes ou IDs de etiquetas
-  custom_fields?: Record<string, unknown>;
+  address?: Partial<FieldAddress> & { city: string; state: string };
+  external?: { id?: string };
+  // VALIDAR: campos abaixo são especulação — confirmar com POST de teste
+  scheduledDate?: string;             // VALIDAR
+  employee?: { id: string };          // VALIDAR
 }
 
 export type UpdateOSInput = Partial<CreateOSInput> & {
-  status?: string;                    // VALIDAR — valor real pra cancelar ('cancelado' | 'canceled' | 'cancelada')
+  archived?: boolean;                 // VALIDAR — Field tem flag `archived`; cancelar pode ser archived=true
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -86,33 +142,37 @@ export function fieldClient(): AxiosInstance {
 // ─────────────────────────────────────────────────────────────
 
 export async function getClientByDocument(cnpj: string): Promise<FieldClient | null> {
+  // VALIDAR: formato real do filtro (pode ser ?document=, ?cnpj=, ?q=, etc).
+  // Ajustar após discover-schema mostrar a resposta de /customers.
   const res = await withRetry(() =>
-    fieldClient().get<unknown>('/clients', { params: { 'filter[document]': cnpj } }),
+    fieldClient().get<unknown>('/customers', { params: { document: cnpj } }),
   );
   const items = unwrapList<FieldClient>(res.data);
   return items[0] ?? null;
 }
 
 export async function createClient(data: CreateClientInput): Promise<FieldClient> {
-  const res = await withRetry(() => fieldClient().post<unknown>('/clients', data));
+  const res = await withRetry(() => fieldClient().post<unknown>('/customers', data));
   return unwrapItem<FieldClient>(res.data);
 }
 
 export async function createServiceOrder(data: CreateOSInput): Promise<FieldServiceOrder> {
-  const res = await withRetry(() => fieldClient().post<unknown>('/service-orders', data));
+  const res = await withRetry(() => fieldClient().post<unknown>('/orders', data));
   return unwrapItem<FieldServiceOrder>(res.data);
 }
 
 export async function updateServiceOrder(id: string, patch: UpdateOSInput): Promise<FieldServiceOrder> {
+  // Doc do Field usa PUT (não PATCH) pra updates.
   const res = await withRetry(() =>
-    fieldClient().patch<unknown>(`/service-orders/${encodeURIComponent(id)}`, patch),
+    fieldClient().put<unknown>(`/orders/${encodeURIComponent(id)}`, patch),
   );
   return unwrapItem<FieldServiceOrder>(res.data);
 }
 
 export async function cancelServiceOrder(id: string): Promise<FieldServiceOrder> {
-  // VALIDAR: valor real do status de cancelamento na API
-  return updateServiceOrder(id, { status: 'cancelado' });
+  // VALIDAR: Field não expõe `status` no GET. Cancelamento provavelmente é via
+  // `archived: true` (flag presente no GET). Confirmar empiricamente.
+  return updateServiceOrder(id, { archived: true });
 }
 
 // ─────────────────────────────────────────────────────────────
