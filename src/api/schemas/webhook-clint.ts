@@ -4,10 +4,12 @@ const YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Payload que a Clint envia em "Negócio entrou na etapa Boas-Vindas".
- * Estrutura segue seção 3.4 do integracao-clint-field-senses.md, com o
- * acréscimo de `field_customer_id` em custom_fields — pré-requisito pra
- * criar OS no Field (idealmente preenchido na Clint via dropdown
- * vinculado ao customer já cadastrado no Field).
+ * Estrutura segue seção 3.4 do integracao-clint-field-senses.md.
+ *
+ * Resolução do customer no Field:
+ *   - `cnpj` é obrigatório → resolvido via field_customer_mapping (cron + manual sync)
+ *   - `field_customer_id` é fallback opcional (cliente recém-cadastrado no
+ *     Field e ainda não sincronizado pelo cron)
  */
 
 export const ChecklistItemSchema = z.object({
@@ -16,7 +18,7 @@ export const ChecklistItemSchema = z.object({
 });
 
 export const CustomFieldsSchema = z.object({
-  cnpj: z.string().optional(),
+  cnpj: z.string().min(11).optional(),
   cliente_nome_razao: z.string().optional(),
   contrato_inicio: z.string().optional(),
   contrato_fim: z.string().optional(),
@@ -24,7 +26,7 @@ export const CustomFieldsSchema = z.object({
   telefone_contato: z.string().optional(),
   email_contato: z.string().optional(),
   tecnico_padrao_id: z.string().optional(),
-  /** ID base64 do customer no Field Control. Obrigatório pra criar OS. */
+  /** Fallback opcional. Quando ausente, o webhook resolve via lookup de CNPJ. */
   field_customer_id: z.string().optional(),
 });
 
@@ -57,6 +59,7 @@ export type WebhookOutcome =
   | { status: 'ignorado_etapa_errada'; stageRecebido: string }
   | { status: 'ignorado_checklist_incompleto'; itensFaltando: string[] }
   | { status: 'ignorado_campos_incompletos'; camposFaltando: string[] }
+  | { status: 'ignorado_customer_not_mapped'; cnpj: string }
   | { status: 'ignorado_duplicado' };
 
 export interface WebhookResponse {
@@ -65,13 +68,16 @@ export interface WebhookResponse {
   outcome: WebhookOutcome;
 }
 
-/** Campos obrigatórios pra disparar a criação de OS. */
+/**
+ * Campos obrigatórios pra disparar a criação de OS.
+ * `field_customer_id` NÃO entra aqui — é fallback opcional. O webhook
+ * resolve customer via lookup de CNPJ no field_customer_mapping.
+ */
 export const REQUIRED_CUSTOM_FIELDS = [
   'cnpj',
   'cliente_nome_razao',
   'contrato_inicio',
   'contrato_fim',
-  'field_customer_id',
 ] as const;
 
 export const EXPECTED_STAGE = 'Boas-Vindas';

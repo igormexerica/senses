@@ -1,7 +1,7 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { TelegramNotifier } from '../../lib/telegram.js';
 import { loadEnv } from '../../lib/env.js';
-import { logIgnorado } from '../../lib/supabase.js';
+import { findFieldCustomerByDocument, logIgnorado } from '../../lib/supabase.js';
 import type { Pipeline } from '../../lib/types.js';
 import type { CreateOrdersRequest } from '../schemas/create.js';
 import {
@@ -103,15 +103,45 @@ async function handleWebhook(
     };
   }
 
-  // e. Mapear payload → CreateOrdersRequest e disparar
+  // e. Resolver customerId: usa fallback manual do payload, ou lookup via CNPJ
   const cf = payload.deal.custom_fields;
+  const cnpj = cf.cnpj as string;
+  let customerId: string;
+  if (typeof cf.field_customer_id === 'string' && cf.field_customer_id.trim() !== '') {
+    customerId = cf.field_customer_id.trim();
+    log.info({ source: 'payload_fallback' }, 'customer_lookup');
+  } else {
+    const mapping = await findFieldCustomerByDocument(cnpj);
+    if (mapping === null) {
+      log.warn({ cnpj }, 'customer_not_mapped');
+      await safeLogIgnorado(payload.deal.id, 'ignorado_customer_not_mapped', payload, {
+        pipeline,
+        erro: `CNPJ ${cnpj} não mapeado em field_customer_mapping — re-sync manual via POST /api/v1/sync-customers`,
+      }, log);
+      await safeNotifyGestor(
+        `⚠️ CNPJ não mapeado no Field: \`${cnpj}\` (deal *${payload.deal.id}*, ${cf.cliente_nome_razao ?? '?'}). Rode \`POST /api/v1/sync-customers\` ou preencha \`field_customer_id\` manualmente na Clint.`,
+        log,
+      );
+      return {
+        clintDealId: payload.deal.id,
+        pipeline,
+        outcome: { status: 'ignorado_customer_not_mapped', cnpj },
+      };
+    }
+    customerId = mapping.fieldCustomerId;
+    log.info(
+      { source: 'mapping_table', fieldCustomerId: customerId, lastSyncedAt: mapping.lastSyncedAt },
+      'customer_lookup',
+    );
+  }
+
   const createBody: CreateOrdersRequest = {
     clintDealId: payload.deal.id,
-    customerId: cf.field_customer_id as string,
+    customerId,
     pipeline,
     contratoInicio: cf.contrato_inicio as string,
     contratoFim: cf.contrato_fim as string,
-    cnpj: cf.cnpj as string,
+    cnpj,
     clienteNome: cf.cliente_nome_razao as string,
     disparadoPor: payload.triggered_by.user_email,
   };
@@ -153,7 +183,10 @@ async function handleWebhook(
 
 async function safeLogIgnorado(
   dealId: string,
-  motivo: 'ignorado_checklist_incompleto' | 'ignorado_campos_incompletos',
+  motivo:
+    | 'ignorado_checklist_incompleto'
+    | 'ignorado_campos_incompletos'
+    | 'ignorado_customer_not_mapped',
   payload: unknown,
   ctx: { pipeline: Pipeline; erro: string },
   log: FastifyBaseLogger,

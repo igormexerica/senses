@@ -160,6 +160,30 @@ TEST_SCENARIO=missing-secret   WEBHOOK_URL=https://senses-api.ifops.com.br npx t
 TEST_SCENARIO=bad-secret       WEBHOOK_URL=https://senses-api.ifops.com.br npx tsx src/scripts/test-webhook.ts
 ```
 
+## Customer Mapping (CNPJ → Field)
+
+Tabela local `field_customer_mapping` resolve CNPJ → `field_customer_id`
+sem precisar paginar o Field a cada webhook (a API do Field ignora
+filtros). Populada por:
+
+- **Cron interno** hora-em-hora no `:05` (timezone America/Sao_Paulo),
+  registrado em `src/api/cron.ts`.
+- **Endpoint manual** `POST /api/v1/sync-customers` (auth `X-Api-Key`).
+
+```bash
+# Re-sync manual (use após cadastrar customer novo no Field)
+curl -X POST -H "X-Api-Key: $API_INTERNAL_KEY" \
+  https://senses-api.ifops.com.br/api/v1/sync-customers
+# → { "totalScanned": 1259, "totalUpserted": 1247, "durationMs": 11342, ... }
+
+# Verificar cron ativo
+docker logs senses-os-api 2>&1 | grep cron_initialized
+```
+
+Quando o webhook recebe um CNPJ não mapeado, retorna
+`ignorado_customer_not_mapped` + alerta no Telegram pro gestor. Detalhes
+e troubleshooting: [`docs/decisoes/2026-05-25-customer-mapping.md`](./docs/decisoes/2026-05-25-customer-mapping.md).
+
 ## Cloudflare Tunnel
 
 ```bash

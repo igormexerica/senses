@@ -6,6 +6,10 @@
  *   - wrong-stage      → stage != Boas-Vindas (espera 200 ignorado_etapa_errada)
  *   - checklist-incomp → checklist com done=false (espera 200 ignorado_checklist_incompleto)
  *   - missing-fields   → custom_fields incompletos (espera 200 ignorado_campos_incompletos)
+ *   - lookup-cnpj      → sem field_customer_id, CNPJ mapeado (env CNPJ_MAPPED)
+ *                        → espera customer_lookup via mapping_table
+ *   - unmapped-cnpj    → sem field_customer_id, CNPJ aleatório
+ *                        → espera 200 ignorado_customer_not_mapped
  *   - happy (default)  → payload completo com IDs DUMMY (vai falhar no Field
  *                        ou no Supabase — ok pra MVP, só queremos confirmar que
  *                        passa por todos os gates).
@@ -76,7 +80,15 @@ function buildPayload(scenario: string): Payload {
       return p;
     case 'missing-fields':
       p.deal.custom_fields.cnpj = '';
-      p.deal.custom_fields.field_customer_id = '';
+      p.deal.custom_fields.cliente_nome_razao = '';
+      return p;
+    case 'lookup-cnpj':
+      delete p.deal.custom_fields.field_customer_id;
+      p.deal.custom_fields.cnpj = process.env.CNPJ_MAPPED ?? '12345678000190';
+      return p;
+    case 'unmapped-cnpj':
+      delete p.deal.custom_fields.field_customer_id;
+      p.deal.custom_fields.cnpj = '99887766554433'; // improvável de existir
       return p;
     default:
       return p;
