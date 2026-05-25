@@ -252,6 +252,25 @@ export async function getCustomerLocations(customerId: string): Promise<FieldLoc
   }
 }
 
+/**
+ * Pagina /customers. Field ignora filtros — só limit/offset funciona.
+ * Sem ordering garantido pela API (testado 2026-05-22). Caller responsável
+ * por chamar até a página vir vazia (ou menor que `limit`).
+ */
+export async function listCustomersPage(
+  offset: number,
+  limit: number,
+): Promise<FieldCustomer[]> {
+  try {
+    const res = await withRetry(() =>
+      fieldClient().get<unknown>('/customers', { params: { limit, offset } }),
+    );
+    return unwrapList<FieldCustomer>(res.data);
+  } catch (err) {
+    throw remapFieldError(err);
+  }
+}
+
 export async function getOrder(id: string): Promise<FieldOrder> {
   try {
     const res = await withRetry(() =>
