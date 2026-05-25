@@ -125,40 +125,62 @@ curl -X POST http://localhost:3000/api/v1/create-orders \
 └── docker-compose.yml  # local + produção
 ```
 
-## n8n self-hosted
+## Webhook Clint (público)
 
-n8n exposto em `https://n8n.ifops.com.br` via Cloudflare Tunnel, mesmo
-docker-compose project. Stack completo: ver
-[`docs/decisoes/2026-05-25-n8n-setup.md`](./docs/decisoes/2026-05-25-n8n-setup.md).
+A Clint dispara webhook OUT quando um deal entra na etapa "Boas-Vindas".
+O microserviço recebe direto em `senses-api.ifops.com.br` via Cloudflare
+Tunnel, valida checklist + campos obrigatórios + idempotência e cria as OS
+no Field. Detalhes: [`docs/decisoes/2026-05-25-remove-n8n-direct-webhook.md`](./docs/decisoes/2026-05-25-remove-n8n-direct-webhook.md).
 
-```bash
-# Subir n8n + cloudflared
-docker compose -f docker-compose.n8n.yml --env-file .env.n8n up -d
+**Endpoints:**
 
-# Logs
-docker logs n8n --tail 50 -f
-docker logs cloudflared-n8n --tail 50 -f
+```
+POST https://senses-api.ifops.com.br/api/v1/webhook/clint/onboarding-remoto
+POST https://senses-api.ifops.com.br/api/v1/webhook/clint/onboarding-presencial
 
-# Restart
-docker compose -f docker-compose.n8n.yml restart n8n
-docker compose -f docker-compose.n8n.yml restart cloudflared
-
-# Backup do volume
-docker run --rm -v senses_n8n_data:/data -v /root/backup:/backup \
-  alpine tar czf /backup/n8n-$(date +%Y%m%d).tar.gz -C /data .
+Headers:
+  Content-Type: application/json
+  X-Webhook-Secret: <valor do WEBHOOK_SECRET no .env>
 ```
 
-**Config do tunnel (ingress rules):** `cloudflared/config.yml` (versionado).
-Para adicionar uma nova rota pública, editar esse arquivo e rodar
-`docker compose -f docker-compose.n8n.yml restart cloudflared`.
+Sempre responde 200 (exceto 400 em payload mal-formado, 401/403 em auth,
+502 em falha do Field). Body de resposta inclui `outcome.status`:
+`success`, `ignorado_duplicado`, `ignorado_etapa_errada`,
+`ignorado_checklist_incompleto`, `ignorado_campos_incompletos`, `failed`.
+
+**Testar o webhook (5 cenários):**
+
+```bash
+# contra produção
+WEBHOOK_URL=https://senses-api.ifops.com.br npx tsx src/scripts/test-webhook.ts
+TEST_SCENARIO=wrong-stage      WEBHOOK_URL=https://senses-api.ifops.com.br npx tsx src/scripts/test-webhook.ts
+TEST_SCENARIO=checklist-incomp WEBHOOK_URL=https://senses-api.ifops.com.br npx tsx src/scripts/test-webhook.ts
+TEST_SCENARIO=missing-fields   WEBHOOK_URL=https://senses-api.ifops.com.br npx tsx src/scripts/test-webhook.ts
+TEST_SCENARIO=missing-secret   WEBHOOK_URL=https://senses-api.ifops.com.br npx tsx src/scripts/test-webhook.ts
+TEST_SCENARIO=bad-secret       WEBHOOK_URL=https://senses-api.ifops.com.br npx tsx src/scripts/test-webhook.ts
+```
+
+## Cloudflare Tunnel
+
+```bash
+# Subir / restart do tunnel
+docker compose -f docker-compose.cloudflared.yml --env-file .env.cloudflared up -d
+docker compose -f docker-compose.cloudflared.yml restart cloudflared
+
+# Logs
+docker logs cloudflared --tail 50 -f
+```
+
+**Config das ingress rules:** `cloudflared/config.yml` (versionado).
+Para adicionar uma nova rota pública: editar `cloudflared/config.yml` +
+`docker compose -f docker-compose.cloudflared.yml restart cloudflared`.
 
 **Segredos (NUNCA commitar):**
 - `/root/.cloudflared/senses-contabo.token` — JWT do tunnel
-- `/root/.n8n-encryption-key` — chave de cifragem das credenciais
-- `/root/senses/.env.n8n` — env do compose (token + key + owner password)
+- `/root/senses/.env.cloudflared` — env com o token pro compose
 
 ## Documentos principais
 
 - [`integracao-clint-field-senses.md`](./integracao-clint-field-senses.md) — spec técnico completo (arquitetura, payloads, cálculo de datas, ramos de erro)
+- [`docs/decisoes/`](./docs/decisoes/) — ADRs e histórico de decisões
 - [`supabase/migrations/`](./supabase/migrations/) — schema do log de auditoria
-- [`n8n-workflows/`](./n8n-workflows/) — workflows exportados (remoto, presencial, cancelamento, renovação, watchdog)
