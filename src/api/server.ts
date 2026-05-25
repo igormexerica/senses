@@ -5,20 +5,21 @@
  * Roda em prod (container): `npm run api:start`.
  *
  * Endpoints (todos sob /api/v1):
- *   GET  /health            — público, sem auth, retorna status+uptime.
- *   POST /calculate-os      — calc datas (dry run, sem efeitos colaterais).
- *   POST /create-orders     — calc + cria no Field + log no Supabase.
- *
- * Todos os endpoints (exceto /health) exigem header `X-Api-Key`.
+ *   GET  /health                          — público, sem auth.
+ *   POST /calculate-os                    — X-Api-Key. Dry-run, sem efeitos.
+ *   POST /create-orders                   — X-Api-Key. Cria no Field + log.
+ *   POST /webhook/clint/onboarding-*      — X-Webhook-Secret. Webhook da Clint.
  */
 import sensible from '@fastify/sensible';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { loadEnv } from '../lib/env.js';
 import { registerAuth } from './middleware/auth.js';
 import { registerErrorHandler } from './middleware/error-handler.js';
+import { registerWebhookAuth } from './middleware/webhook-auth.js';
 import { calculateRoutes } from './routes/calculate.js';
 import { createRoutes } from './routes/create.js';
 import { healthRoutes } from './routes/health.js';
+import { webhookClintRoutes } from './routes/webhook-clint.js';
 
 const REQUEST_TIMEOUT_MS = 65_000; // 60s timeout em /create-orders + margem
 
@@ -47,11 +48,13 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(sensible);
 
   registerAuth(app);
+  registerWebhookAuth(app);
   registerErrorHandler(app);
 
   await app.register(healthRoutes);
   await app.register(calculateRoutes);
   await app.register(createRoutes);
+  await app.register(webhookClintRoutes);
 
   return app;
 }

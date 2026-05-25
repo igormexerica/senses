@@ -37,6 +37,9 @@ const EnvSchema = z.object({
   // Microserviço HTTP (Fastify). Obrigatórios pra subir a API, mas opcionais
   // pra scripts isolados (discover-schema, calculators standalone).
   API_INTERNAL_KEY: optionalString,
+  // Webhook recebido da Clint (rotas /api/v1/webhook/clint/*). Min 32 chars.
+  // Opcional aqui (scripts isolados não precisam); webhook-auth.ts valida no boot.
+  WEBHOOK_SECRET: z.preprocess(emptyToUndef, z.string().min(32).optional()),
   API_PORT: z.preprocess(emptyToUndef, z.coerce.number().int().positive().default(3000)),
   API_HOST: z.preprocess(emptyToUndef, z.string().min(1).default('0.0.0.0')),
   NODE_ENV: z.preprocess(emptyToUndef, z.enum(['development', 'production', 'test']).default('development')),

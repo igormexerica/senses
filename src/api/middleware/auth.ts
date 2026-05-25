@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { loadEnv } from '../../lib/env.js';
 
-const AUTH_BYPASS_PREFIXES = ['/api/v1/health'];
+// /api/v1/webhook/* usa header X-Webhook-Secret (middleware separado em
+// webhook-auth.ts), por isso é bypassado aqui.
+const AUTH_BYPASS_PREFIXES = ['/api/v1/health', '/api/v1/webhook'];
 
 export function registerAuth(app: FastifyInstance): void {
   const env = loadEnv();
