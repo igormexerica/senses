@@ -1,0 +1,9 @@
+tunnel: 41c382f6-0955-444d-ab1e-e5aca1a49569
+
+ingress:
+  - hostname: n8n.ifops.com.br
+    service: http://n8n:5678
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+  - service: http_status:404

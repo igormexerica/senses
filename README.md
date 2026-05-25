@@ -125,6 +125,38 @@ curl -X POST http://localhost:3000/api/v1/create-orders \
 └── docker-compose.yml  # local + produção
 ```
 
+## n8n self-hosted
+
+n8n exposto em `https://n8n.ifops.com.br` via Cloudflare Tunnel, mesmo
+docker-compose project. Stack completo: ver
+[`docs/decisoes/2026-05-25-n8n-setup.md`](./docs/decisoes/2026-05-25-n8n-setup.md).
+
+```bash
+# Subir n8n + cloudflared
+docker compose -f docker-compose.n8n.yml --env-file .env.n8n up -d
+
+# Logs
+docker logs n8n --tail 50 -f
+docker logs cloudflared-n8n --tail 50 -f
+
+# Restart
+docker compose -f docker-compose.n8n.yml restart n8n
+docker compose -f docker-compose.n8n.yml restart cloudflared
+
+# Backup do volume
+docker run --rm -v senses_n8n_data:/data -v /root/backup:/backup \
+  alpine tar czf /backup/n8n-$(date +%Y%m%d).tar.gz -C /data .
+```
+
+**Config do tunnel (ingress rules):** `cloudflared/config.yml` (versionado).
+Para adicionar uma nova rota pública, editar esse arquivo e rodar
+`docker compose -f docker-compose.n8n.yml restart cloudflared`.
+
+**Segredos (NUNCA commitar):**
+- `/root/.cloudflared/senses-contabo.token` — JWT do tunnel
+- `/root/.n8n-encryption-key` — chave de cifragem das credenciais
+- `/root/senses/.env.n8n` — env do compose (token + key + owner password)
+
 ## Documentos principais
 
 - [`integracao-clint-field-senses.md`](./integracao-clint-field-senses.md) — spec técnico completo (arquitetura, payloads, cálculo de datas, ramos de erro)
