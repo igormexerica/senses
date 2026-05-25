@@ -8,17 +8,22 @@
  *   GET  /health                          — público, sem auth.
  *   POST /calculate-os                    — X-Api-Key. Dry-run, sem efeitos.
  *   POST /create-orders                   — X-Api-Key. Cria no Field + log.
+ *   POST /sync-customers                  — X-Api-Key. Re-sync manual mapping.
  *   POST /webhook/clint/onboarding-*      — X-Webhook-Secret. Webhook da Clint.
+ *
+ * Cron: hora-em-hora no :05 dispara syncFieldCustomers (registerCronJobs).
  */
 import sensible from '@fastify/sensible';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { loadEnv } from '../lib/env.js';
+import { registerCronJobs, type CronHandle } from './cron.js';
 import { registerAuth } from './middleware/auth.js';
 import { registerErrorHandler } from './middleware/error-handler.js';
 import { registerWebhookAuth } from './middleware/webhook-auth.js';
 import { calculateRoutes } from './routes/calculate.js';
 import { createRoutes } from './routes/create.js';
 import { healthRoutes } from './routes/health.js';
+import { syncCustomersRoutes } from './routes/sync-customers.js';
 import { webhookClintRoutes } from './routes/webhook-clint.js';
 
 const REQUEST_TIMEOUT_MS = 65_000; // 60s timeout em /create-orders + margem
@@ -54,6 +59,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await app.register(healthRoutes);
   await app.register(calculateRoutes);
   await app.register(createRoutes);
+  await app.register(syncCustomersRoutes);
   await app.register(webhookClintRoutes);
 
   return app;
@@ -63,9 +69,13 @@ async function main(): Promise<void> {
   const env = loadEnv();
   const app = await buildServer();
 
+  await app.ready();
+  const cronHandle: CronHandle = registerCronJobs(app);
+
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info({ signal }, 'shutdown_initiated');
     try {
+      cronHandle.stopAll();
       await app.close();
       process.exit(0);
     } catch (err) {

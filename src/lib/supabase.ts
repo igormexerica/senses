@@ -1,8 +1,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { normalizeDocument } from './document.js';
 import { loadEnv } from './env.js';
 import type { Pipeline } from './types.js';
 
 const TABLE = 'os_geracao_log';
+const MAPPING_TABLE = 'field_customer_mapping';
+const UPSERT_BATCH_SIZE = 100;
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -14,6 +17,7 @@ export type OsLogStatus =
   | 'failed'
   | 'ignorado_checklist_incompleto'
   | 'ignorado_campos_incompletos'
+  | 'ignorado_customer_not_mapped'
   | 'ignorado_duplicado';
 
 export type OsLogIgnoradoStatus = Extract<OsLogStatus, `ignorado_${string}`>;
@@ -210,6 +214,105 @@ export async function findByFieldOrderId(fieldOrderId: string): Promise<OsLogRow
     .maybeSingle();
   if (error) throw error;
   return (data as OsLogRow | null) ?? null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// field_customer_mapping (Plano B do design 2026-05-25)
+// ─────────────────────────────────────────────────────────────
+
+export interface FieldCustomerMapping {
+  fieldCustomerId: string;
+  customerName: string | null;
+  primaryLocationId: string | null;
+  lastSyncedAt: Date;
+}
+
+export interface UpsertMappingRow {
+  documentNumber: string;
+  fieldCustomerId: string;
+  customerName: string | null;
+  primaryLocationId: string | null;
+}
+
+export interface UpsertMappingResult {
+  upserted: number;
+  skipped: number;
+}
+
+/**
+ * Lookup CNPJ/CPF (normalizado ou com máscara) → field_customer_id.
+ * Retorna null se documento for inválido ou não estiver mapeado.
+ *
+ * Não tenta fallback (auto-resync etc.) — caller decide o que fazer.
+ */
+export async function findFieldCustomerByDocument(
+  documentNumber: string,
+): Promise<FieldCustomerMapping | null> {
+  const normalized = normalizeDocument(documentNumber);
+  if (normalized === null) return null;
+
+  const { data, error } = await supabase
+    .from(MAPPING_TABLE)
+    .select('field_customer_id, customer_name, primary_location_id, last_synced_at')
+    .eq('document_number', normalized)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (data === null) return null;
+
+  const row = data as {
+    field_customer_id: string;
+    customer_name: string | null;
+    primary_location_id: string | null;
+    last_synced_at: string;
+  };
+  return {
+    fieldCustomerId: row.field_customer_id,
+    customerName: row.customer_name,
+    primaryLocationId: row.primary_location_id,
+    lastSyncedAt: new Date(row.last_synced_at),
+  };
+}
+
+/**
+ * Upsert em lote no mapping. Normaliza documento antes; rows com documento
+ * inválido vão pro contador `skipped` (não estouram a operação).
+ *
+ * Conflict target: document_number (PK). Em conflito atualiza
+ * field_customer_id, customer_name, primary_location_id e last_synced_at.
+ */
+export async function upsertFieldCustomerMapping(
+  rows: UpsertMappingRow[],
+): Promise<UpsertMappingResult> {
+  let upserted = 0;
+  let skipped = 0;
+
+  const validRows: Array<Record<string, unknown>> = [];
+  for (const r of rows) {
+    const normalized = normalizeDocument(r.documentNumber);
+    if (normalized === null) {
+      skipped++;
+      continue;
+    }
+    validRows.push({
+      document_number: normalized,
+      field_customer_id: r.fieldCustomerId,
+      customer_name: r.customerName,
+      primary_location_id: r.primaryLocationId,
+      last_synced_at: new Date().toISOString(),
+    });
+  }
+
+  for (let i = 0; i < validRows.length; i += UPSERT_BATCH_SIZE) {
+    const chunk = validRows.slice(i, i + UPSERT_BATCH_SIZE);
+    const { error } = await supabase
+      .from(MAPPING_TABLE)
+      .upsert(chunk, { onConflict: 'document_number' });
+    if (error) throw error;
+    upserted += chunk.length;
+  }
+
+  return { upserted, skipped };
 }
 
 // ─────────────────────────────────────────────────────────────
