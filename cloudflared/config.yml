@@ -1,8 +1,8 @@
 tunnel: 41c382f6-0955-444d-ab1e-e5aca1a49569
 
 ingress:
-  - hostname: n8n.ifops.com.br
-    service: http://n8n:5678
+  - hostname: senses-api.ifops.com.br
+    service: http://senses-os-api:3000
     originRequest:
       noTLSVerify: true
       connectTimeout: 30s
