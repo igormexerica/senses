@@ -1,0 +1,22 @@
+services:
+  senses-redis:
+    image: redis:7-alpine
+    container_name: senses-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "yes"]
+    volumes:
+      - senses_redis_data:/data
+    networks:
+      - senses_default
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+networks:
+  senses_default:
+    external: true
+
+volumes:
+  senses_redis_data:

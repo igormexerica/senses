@@ -1,0 +1,30 @@
+services:
+  senses-playwright-worker:
+    build: ./playwright
+    image: senses-playwright-worker:latest
+    container_name: senses-playwright-worker
+    restart: unless-stopped
+    env_file:
+      - /root/.field-login.env
+      - .env.playwright
+    volumes:
+      - playwright_state:/data/playwright-state
+      - playwright_failures:/data/playwright-failures
+    networks:
+      - senses_default
+    # senses-redis vive em docker-compose.redis.yml — subir primeiro. Worker
+    # tem restart:unless-stopped, então se Redis não estiver up ainda, o
+    # próprio reconecta no próximo restart.
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f dist/worker.js >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  senses_default:
+    external: true
+
+volumes:
+  playwright_state:
+  playwright_failures:
