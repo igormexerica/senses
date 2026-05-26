@@ -15,10 +15,15 @@ export type OsLogStatus =
   | 'success'
   | 'partial'
   | 'failed'
+  | 'queued_recurrence'
+  | 'recurrence_created'
+  | 'failed_playwright'
   | 'ignorado_checklist_incompleto'
   | 'ignorado_campos_incompletos'
   | 'ignorado_customer_not_mapped'
   | 'ignorado_duplicado';
+
+export type Gatilho = 'disparo_1' | 'disparo_2';
 
 export type OsLogIgnoradoStatus = Extract<OsLogStatus, `ignorado_${string}`>;
 
@@ -47,6 +52,9 @@ export interface OsLogEntry {
   // Migration 002: rastreabilidade Field
   field_order_id?: string | null;
   field_customer_id?: string | null;
+  // Migration 004: rastreio do disparo + Recorrência
+  gatilho?: Gatilho | null;
+  field_recurrence_id?: string | null;
 }
 
 export interface OsLogRow {

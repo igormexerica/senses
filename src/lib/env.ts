@@ -40,6 +40,8 @@ const EnvSchema = z.object({
   // Webhook recebido da Clint (rotas /api/v1/webhook/clint/*). Min 32 chars.
   // Opcional aqui (scripts isolados não precisam); webhook-auth.ts valida no boot.
   WEBHOOK_SECRET: z.preprocess(emptyToUndef, z.string().min(32).optional()),
+  // Redis usado por BullMQ pra fila field-recurrences (worker Playwright).
+  REDIS_URL: z.preprocess(emptyToUndef, z.string().url().optional()),
   API_PORT: z.preprocess(emptyToUndef, z.coerce.number().int().positive().default(3000)),
   API_HOST: z.preprocess(emptyToUndef, z.string().min(1).default('0.0.0.0')),
   NODE_ENV: z.preprocess(emptyToUndef, z.enum(['development', 'production', 'test']).default('development')),

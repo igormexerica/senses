@@ -44,6 +44,17 @@ export const FIELD_SERVICE_IDS = {
   PRESENCIAL_MANUTENCAO: 'MTIyNTk0OjUyMDI1',
 } as const;
 
+/**
+ * Nomes EXATOS do tipo de serviço como aparecem no dropdown da UI Field
+ * Control (tela /recorrencias/novo). Usado pelo worker Playwright pra
+ * resolver via autocomplete. CONFIRMAR ABRINDO A UI antes do go-live —
+ * placeholders pendentes de verificação em 2026-05-26.
+ */
+export const FIELD_SERVICE_NAMES = {
+  REMOTO_ENVIO_RECARGA: 'ENVIO BIMESTRAL DE RECARGA',
+  PRESENCIAL_MANUTENCAO: 'MANUTENÇÃO MENSAL',
+} as const;
+
 // ─────────────────────────────────────────────────────────────
 // Tipos — confirmados via engenharia reversa
 // ─────────────────────────────────────────────────────────────

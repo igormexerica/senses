@@ -151,6 +151,119 @@ export async function runCreateOrders(
   };
 }
 
+/**
+ * Variante simplificada usada no DISPARO #1 (saída Checklist Comercial):
+ * cria 1 única OS "envio inicial" com data=HOJE, sem chamar calculadora.
+ * Mantém idempotência via Supabase log + retorna o ID da OS criada.
+ */
+export async function runCreateInitialOrder(
+  body: Omit<CreateOrdersRequest, 'contratoInicio' | 'contratoFim'> & {
+    contratoInicio?: string;
+    contratoFim?: string;
+  },
+  parentLog: FastifyBaseLogger,
+): Promise<RunCreateOrdersResult> {
+  const log = parentLog.child({
+    clint_deal_id: body.clintDealId,
+    pipeline: body.pipeline,
+    gatilho: 'disparo_1',
+  });
+
+  const jaCriado = await checkIdempotency(body.clintDealId);
+  if (jaCriado) {
+    log.info('ignored_duplicate');
+    return {
+      response: {
+        clintDealId: body.clintDealId,
+        status: 'ignorado_duplicado',
+        totalOs: 0,
+        createdOrderIds: [],
+        skipped: { motivo: 'já existe log com status=success pra esse clintDealId' },
+      },
+      httpStatus: 200,
+    };
+  }
+
+  const hoje = today();
+  const descricao = `[${body.pipeline}] Envio inicial (saída Checklist Comercial)`;
+  const tipoInicial: OSToCreate['tipo'] =
+    body.pipeline === 'onboarding_remoto' ? 'envio_refil_inicial' : 'visita_tecnica_inicial';
+  const items: OSToCreate[] = [{ tipo: tipoInicial, descricao, data: hoje, dataCalculada: hoje }];
+
+  await insertLog({
+    pipeline: body.pipeline,
+    clint_deal_id: body.clintDealId,
+    cliente_cnpj: body.cnpj,
+    cliente_nome: body.clienteNome,
+    contrato_inicio: body.contratoInicio ?? hoje,
+    contrato_fim: body.contratoFim ?? hoje,
+    tipo_os: body.pipeline === 'onboarding_remoto' ? 'envio_refil' : 'visita_tecnica',
+    datas_geradas: items,
+    total_os: 1,
+    disparado_por: body.disparadoPor,
+    status: 'failed',
+    erro: 'em_processamento',
+    field_customer_id: body.customerId,
+    gatilho: 'disparo_1',
+  });
+
+  const serviceId =
+    body.pipeline === 'onboarding_remoto'
+      ? FIELD_SERVICE_IDS.REMOTO_ENVIO_RECARGA
+      : FIELD_SERVICE_IDS.PRESENCIAL_MANUTENCAO;
+
+  try {
+    const payload = await buildOrderPayload({
+      clintDealId: body.clintDealId,
+      customerId: body.customerId,
+      serviceId,
+      description: descricao,
+      scheduledDate: hoje,
+    });
+    const order = await createOrder(payload);
+    await markSuccess(body.clintDealId, {
+      osFieldIds: [order.id],
+      fieldOrderId: order.id,
+      fieldCustomerId: body.customerId,
+    });
+    log.info({ fieldOrderId: order.id, scheduledDate: hoje }, 'initial_order_created');
+    return {
+      response: {
+        clintDealId: body.clintDealId,
+        status: 'success',
+        totalOs: 1,
+        createdOrderIds: [order.id],
+      },
+      httpStatus: 200,
+    };
+  } catch (err) {
+    const motivo = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    await markFailed(body.clintDealId, motivo);
+    log.error({ err }, 'initial_order_create_failed');
+    return {
+      response: {
+        clintDealId: body.clintDealId,
+        status: 'failed',
+        totalOs: 0,
+        createdOrderIds: [],
+        failed: { motivo, criadasParciais: [] },
+      },
+      httpStatus: 502,
+    };
+  }
+}
+
+/** YYYY-MM-DD no fuso America/Sao_Paulo. */
+function today(): string {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return fmt.format(new Date());
+}
+
 export async function createRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/v1/create-orders', async (req, reply) => {
     const body = CreateOrdersRequestSchema.parse(req.body);
