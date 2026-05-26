@@ -127,16 +127,21 @@ curl -X POST http://localhost:3000/api/v1/create-orders \
 
 ## Webhook Clint (público)
 
-A Clint dispara webhook OUT quando um deal entra na etapa "Boas-Vindas".
-O microserviço recebe direto em `senses-api.ifops.com.br` via Cloudflare
-Tunnel, valida checklist + campos obrigatórios + idempotência e cria as OS
-no Field. Detalhes: [`docs/decisoes/2026-05-25-remove-n8n-direct-webhook.md`](./docs/decisoes/2026-05-25-remove-n8n-direct-webhook.md).
+A Clint dispara webhook OUT em **2 etapas distintas** do pipeline; cada
+disparo cria um efeito diferente no Field. Distinção via query string
+`?gatilho=disparo_1|disparo_2`. Detalhes:
+[`docs/decisoes/2026-05-26-playwright-recurrences.md`](./docs/decisoes/2026-05-26-playwright-recurrences.md).
 
-**Endpoints:**
+**Endpoints (4 webhooks configuráveis na Clint):**
 
 ```
-POST https://senses-api.ifops.com.br/api/v1/webhook/clint/onboarding-remoto
-POST https://senses-api.ifops.com.br/api/v1/webhook/clint/onboarding-presencial
+# DISPARO #1 — saída Checklist Comercial → 1 OS "envio inicial" via REST
+POST https://senses-api.ifops.com.br/api/v1/webhook/clint/onboarding-remoto?gatilho=disparo_1
+POST https://senses-api.ifops.com.br/api/v1/webhook/clint/onboarding-presencial?gatilho=disparo_1
+
+# DISPARO #2 — saída Definição de Fragrância → Recorrência via Playwright
+POST https://senses-api.ifops.com.br/api/v1/webhook/clint/onboarding-remoto?gatilho=disparo_2
+POST https://senses-api.ifops.com.br/api/v1/webhook/clint/onboarding-presencial?gatilho=disparo_2
 
 Headers:
   Content-Type: application/json
@@ -144,9 +149,9 @@ Headers:
 ```
 
 Sempre responde 200 (exceto 400 em payload mal-formado, 401/403 em auth,
-502 em falha do Field). Body de resposta inclui `outcome.status`:
-`success`, `ignorado_duplicado`, `ignorado_etapa_errada`,
-`ignorado_checklist_incompleto`, `ignorado_campos_incompletos`, `failed`.
+502 em falha do Field). Body inclui `outcome.status`: `success`,
+`ignorado_duplicado`, `ignorado_etapa_errada`, `ignorado_checklist_incompleto`,
+`ignorado_campos_incompletos`, `ignorado_customer_not_mapped`, `failed`.
 
 **Testar o webhook (5 cenários):**
 
@@ -159,6 +164,39 @@ TEST_SCENARIO=missing-fields   WEBHOOK_URL=https://senses-api.ifops.com.br npx t
 TEST_SCENARIO=missing-secret   WEBHOOK_URL=https://senses-api.ifops.com.br npx tsx src/scripts/test-webhook.ts
 TEST_SCENARIO=bad-secret       WEBHOOK_URL=https://senses-api.ifops.com.br npx tsx src/scripts/test-webhook.ts
 ```
+
+## Cadastro automatizado de Recorrências (Playwright)
+
+O DISPARO #2 do webhook enfileira a criação de **Recorrência no Field
+Control** num worker dedicado que automatiza a UI via Playwright (a API
+REST do Field não expõe o recurso). Stack:
+
+```
+senses-redis              ← BullMQ persistence
+senses-playwright-worker  ← consome fila 'field-recurrences', concurrency=1
+```
+
+```bash
+# Subir
+docker compose -f docker-compose.redis.yml up -d
+docker compose -f docker-compose.playwright.yml up -d
+
+# Logs
+docker logs senses-playwright-worker --tail 50 -f
+
+# Forçar relogin (rotaciona storage state)
+docker compose -f docker-compose.playwright.yml down
+docker volume rm senses_playwright_state
+docker compose -f docker-compose.playwright.yml up -d
+```
+
+**Segredos (NUNCA commitar):**
+- `/root/.field-login.env` — `FIELD_LOGIN_EMAIL` + `FIELD_LOGIN_PASSWORD`
+- `/root/senses/.env.playwright` — `REDIS_URL`, `TELEGRAM_*`
+
+**Falhas de automação** geram screenshot full-page em volume
+`playwright_failures` + log estruturado + (futuro) Telegram pro gestor.
+Detalhes operacionais: [`docs/decisoes/2026-05-26-playwright-recurrences.md`](./docs/decisoes/2026-05-26-playwright-recurrences.md).
 
 ## Customer Mapping (CNPJ → Field)
 
