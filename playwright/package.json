@@ -1,0 +1,26 @@
+{
+  "name": "senses-playwright-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Worker Playwright que cria Recorrências no Field Control via UI (API REST do Field não expõe).",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/worker.js",
+    "dev": "tsx src/worker.ts"
+  },
+  "dependencies": {
+    "bullmq": "^5.13.0",
+    "pino": "^9.4.0",
+    "playwright": "1.49.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
