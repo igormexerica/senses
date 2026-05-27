@@ -6,4 +6,14 @@ ingress:
     originRequest:
       noTLSVerify: true
       connectTimeout: 30s
+
+  # Sentinel dashboard (dev) — Next dev server roda no host (não em container).
+  # Gateway da rede senses_default (172.24.0.1) é o host visto de dentro do
+  # container cloudflared. Funciona enquanto next dev estiver bound em *:3000.
+  - hostname: sentinel-dev.ifops.com.br
+    service: http://172.24.0.1:3000
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+
   - service: http_status:404
