@@ -15,7 +15,10 @@ services:
       - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
     networks:
       - senses_default
+      - supabase_default
 
 networks:
   senses_default:
+    external: true
+  supabase_default:
     external: true

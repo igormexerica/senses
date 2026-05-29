@@ -16,4 +16,13 @@ ingress:
       noTLSVerify: true
       connectTimeout: 30s
 
+  # Supabase self-hosted (field-dashboard) — Kong gateway expõe Studio (raiz,
+  # basic auth) + API REST. cloudflared conectado à rede supabase_default
+  # resolve supabase-kong por DNS interno do Docker.
+  - hostname: supabase.ifops.com.br
+    service: http://supabase-kong:8000
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+
   - service: http_status:404
