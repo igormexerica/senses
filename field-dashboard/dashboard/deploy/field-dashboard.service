@@ -1,0 +1,18 @@
+[Unit]
+Description=Field Dashboard (Next.js) — Senses CS Ops
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/senses/field-dashboard/dashboard
+Environment=NODE_ENV=production
+# .env.local (SUPABASE_URL + SUPABASE_ANON_KEY) é lido automaticamente pelo Next.
+ExecStart=/usr/bin/node /root/senses/field-dashboard/dashboard/node_modules/.bin/next start -p 3001
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
