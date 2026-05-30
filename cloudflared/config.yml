@@ -25,4 +25,14 @@ ingress:
       noTLSVerify: true
       connectTimeout: 30s
 
+  # Field Dashboard (bloco 3) — Next.js (next start) roda no host via systemd
+  # (field-dashboard.service) na :3001. Mesmo padrão do sentinel-dev: gateway
+  # da senses_default (172.24.0.1) = host. PROTEGER com Cloudflare Access antes
+  # de criar o CNAME (expõe dados de CS).
+  - hostname: field.ifops.com.br
+    service: http://172.24.0.1:3001
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+
   - service: http_status:404
