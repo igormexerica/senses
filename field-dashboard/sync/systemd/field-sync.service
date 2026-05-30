@@ -1,0 +1,15 @@
+[Unit]
+Description=Field Control -> Supabase sync (incremental)
+Documentation=file:/root/senses/field-dashboard/sync/PROMPT-BLOCO2-CLAUDE-CODE.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/senses/field-dashboard/sync
+ExecStart=/root/senses/field-dashboard/sync/.venv/bin/python run_sync.py
+TimeoutStartSec=1200
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

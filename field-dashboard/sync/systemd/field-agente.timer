@@ -1,0 +1,12 @@
+[Unit]
+Description=Roda o agente classificador de hora em hora
+
+[Timer]
+# Minuto 10 de cada hora: deixa o sync (que dispara em :00) terminar antes.
+OnCalendar=*:10
+Persistent=true
+RandomizedDelaySec=120
+Unit=field-agente.service
+
+[Install]
+WantedBy=timers.target
