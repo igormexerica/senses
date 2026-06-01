@@ -199,6 +199,82 @@ export interface PlanoAcaoView extends PlanoAcao {
 // Leitura de planos_acao é PRIVILEGIADA (service_role) — ver lib/field-write.ts.
 // (anon não tem SELECT nessas tabelas; são notas internas do CS.)
 
+// ---------------------------------------------------------------------------
+// Visão 360 do cliente
+// ---------------------------------------------------------------------------
+export interface ClienteDetalhe {
+  id: string;
+  codigo_field: string;
+  nome: string;
+  ativo: boolean;
+  data_inicio_contrato: string | null;
+  meses_de_casa: number | null;
+  modalidade: string | null;
+  jornada_atual: string | null;
+  jornada_esperada: string | null;
+  tier: string | null;
+  todas_etiquetas: string[] | null;
+}
+
+export interface OrdemServico {
+  id: string;
+  codigo_field: string;
+  tipo: string | null;
+  status: string | null;
+  mes_referencia: string;
+  criada_em: string | null;
+  concluida_em: string | null;
+}
+
+export interface AvaliacaoCliente {
+  id: string;
+  nota: number | null;
+  comentario: string | null;
+  data_avaliacao: string | null;
+  os_codigo: string | null;
+  os_tipo: string | null;
+}
+
+export interface EquipamentoCliente {
+  id: string;
+  nome: string | null;
+  modelo: string | null;
+  cor: string | null;
+  numero: string | null;
+  archived: boolean;
+}
+
+export const getClienteDetalhe = (id: string) =>
+  fieldGet<ClienteDetalhe>("v_cliente_detalhe", { id: `eq.${id}` });
+
+export const getEquipamentosCliente = (id: string) =>
+  fieldGet<EquipamentoCliente>("equipamentos", {
+    cliente_id: `eq.${id}`,
+    select: "id,nome,modelo,cor,numero,archived",
+    order: "archived.asc,modelo.asc",
+  });
+
+export const getOSCliente = (id: string, limit = 15) =>
+  fieldGet<OrdemServico>("ordens_servico", {
+    cliente_id: `eq.${id}`,
+    select: "id,codigo_field,tipo,status,mes_referencia,criada_em,concluida_em",
+    order: "criada_em.desc",
+    limit: String(limit),
+  });
+
+export const getAvaliacoesCliente = (id: string) =>
+  fieldGet<AvaliacaoCliente>("v_avaliacao_cliente", {
+    cliente_id: `eq.${id}`,
+    order: "data_avaliacao.desc",
+    limit: "50",
+  });
+
+export const getGapsCliente = (id: string) =>
+  fieldGet<GapMensal>("v_gaps_mensais", {
+    cliente_id: `eq.${id}`,
+    order: "mes_referencia.desc",
+  });
+
 export interface AtividadeDia {
   dia: string;
   concluidas: number;

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { InventarioCliente } from "@/lib/field";
 import { num } from "@/lib/format";
@@ -47,8 +48,10 @@ export function InventarioClienteTable({ rows }: { rows: InventarioCliente[] }) 
             <tbody className="divide-y divide-slate-50">
               {filtered.map((r) => (
                 <tr key={r.cliente_id} className="align-top hover:bg-slate-50/60">
-                  <td className="px-4 py-2.5 font-medium text-slate-800 sm:px-5">
-                    {r.cliente_nome}
+                  <td className="px-4 py-2.5 font-medium sm:px-5">
+                    <Link href={`/cliente/${r.cliente_id}`} className="text-slate-800 hover:text-brand-600 hover:underline">
+                      {r.cliente_nome}
+                    </Link>
                   </td>
                   <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900">
                     {num(r.total_equipamentos)}

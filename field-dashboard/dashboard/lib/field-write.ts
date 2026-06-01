@@ -37,6 +37,12 @@ export const getPlanosAcao = () => readSR<PlanoAcao>("planos_acao");
 export const getVPlanosAcao = () =>
   readSR<PlanoAcaoView>("v_planos_acao", { order: "updated_at.desc" });
 
+export const getPlanosAcaoCliente = (clienteId: string) =>
+  readSR<PlanoAcaoView>("v_planos_acao", {
+    cliente_id: `eq.${clienteId}`,
+    order: "updated_at.desc",
+  });
+
 export async function upsertAcao(p: {
   expectativa_id: string;
   status: StatusAcao;

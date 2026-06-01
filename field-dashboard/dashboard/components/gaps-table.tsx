@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Gap, Criticidade, TipoExpectativa, PlanoAcao } from "@/lib/field";
 import { num } from "@/lib/format";
@@ -110,8 +111,10 @@ export function GapsTable({
             <tbody className="divide-y divide-slate-50">
               {filtered.map((g) => (
                 <tr key={g.expectativa_id} className="hover:bg-slate-50/60">
-                  <td className="px-4 py-2.5 font-medium text-slate-800 sm:px-5">
-                    {g.cliente_nome}
+                  <td className="px-4 py-2.5 font-medium sm:px-5">
+                    <Link href={`/cliente/${g.cliente_id}`} className="text-slate-800 hover:text-brand-600 hover:underline">
+                      {g.cliente_nome}
+                    </Link>
                     <span className="ml-2 text-[11px] font-normal text-slate-400">
                       {STATUS_LABEL[g.status] ?? g.status}
                     </span>

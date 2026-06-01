@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { PlanoAcaoView, StatusAcao } from "@/lib/field";
 import { mesLabel, dataHora, num } from "@/lib/format";
@@ -51,8 +52,10 @@ export function AcoesList({ rows }: { rows: PlanoAcaoView[] }) {
             <tbody className="divide-y divide-slate-50">
               {filtered.map((r) => (
                 <tr key={r.id} className="align-top hover:bg-slate-50/60">
-                  <td className="px-4 py-2.5 font-medium text-slate-800 sm:px-5">
-                    {r.cliente_nome}
+                  <td className="px-4 py-2.5 font-medium sm:px-5">
+                    <Link href={`/cliente/${r.cliente_id}`} className="text-slate-800 hover:text-brand-600 hover:underline">
+                      {r.cliente_nome}
+                    </Link>
                     <div className="mt-0.5 flex flex-wrap gap-1">
                       {r.tier && <Tag>{r.tier}</Tag>}
                       {r.jornada_atual && <Tag>{r.jornada_atual}</Tag>}
