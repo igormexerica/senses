@@ -76,8 +76,10 @@ export default async function OverviewPage({
   const dVisita = deltaPp(visita?.realizado_pct, sel("visita", prev)?.realizado_pct);
   const dRefil = deltaPp(refil?.realizado_pct, sel("refil", prev)?.realizado_pct);
 
-  const criticos = gaps.filter((g) => g.criticidade === "critico").length;
-  const topGaps = gaps.slice(0, 8);
+  // gaps acionáveis = sem agendamento no Field (os com OS agendada já estão a caminho)
+  const semAgend = gaps.filter((g) => !g.agendado_field);
+  const criticos = semAgend.filter((g) => g.criticidade === "critico").length;
+  const topGaps = semAgend.slice(0, 8);
 
   // mês em curso: números parciais -> não alarmar (tom neutro, sem delta)
   const tone = (p: number | null | undefined) =>
@@ -119,10 +121,10 @@ export default async function OverviewPage({
           tone={refil ? tone(refil.realizado_pct) : "default"}
         />
         <Stat
-          label="Gaps abertos"
-          value={num(gaps.length)}
-          sub={emCurso ? "a entregar no mês" : `${num(criticos)} crítico(s)`}
-          tone={emCurso ? "default" : criticos > 0 ? "bad" : gaps.length > 0 ? "warn" : "good"}
+          label="Sem agendamento"
+          value={num(semAgend.length)}
+          sub={`${num(criticos)} crítico(s) · ${num(gaps.length)} gaps no total`}
+          tone={criticos > 0 ? "bad" : semAgend.length > 0 ? "warn" : "good"}
         />
         <Stat
           label="Alertas pendentes"
@@ -149,9 +151,9 @@ export default async function OverviewPage({
         </Card>
 
         <Card>
-          <CardTitle hint={`${num(gaps.length)} no total`}>Gaps mais críticos</CardTitle>
+          <CardTitle hint={`${num(semAgend.length)} sem agendamento`}>A agir (sem agendamento)</CardTitle>
           {topGaps.length === 0 ? (
-            <EmptyState>Sem gaps abertos. 🎉</EmptyState>
+            <EmptyState>Tudo agendado. 🎉</EmptyState>
           ) : (
             <ul className="divide-y divide-slate-100">
               {topGaps.map((g) => (

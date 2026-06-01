@@ -59,6 +59,8 @@ export interface Gap {
   todas_etiquetas: string[] | null;
   os_atendendo: string | null;
   criticidade: Criticidade;
+  /** true = já existe OS agendada no Field p/ esse cliente/mês (vem do v_gaps_mensais). */
+  agendado_field?: boolean;
 }
 
 export interface AlertaPendente {

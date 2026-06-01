@@ -148,7 +148,17 @@ SELECT
     WHEN tier_score >= 3 OR (tier_score >= 2 AND risco_score >= 3) THEN 'alto'::field.criticidade
     WHEN tier_score >= 2 OR risco_score >= 3 THEN 'medio'::field.criticidade
     ELSE 'estavel'::field.criticidade
-  END AS criticidade
+  END AS criticidade,
+  -- AGENDADO no Field: já existe OS do mesmo cliente/mês/tipo (agendada, ainda
+  -- não concluída — senão a expectativa não estaria como gap). Evita o CS
+  -- re-registrar "agendado" à mão: se marcou no Field, aparece aqui sozinho.
+  EXISTS (
+    SELECT 1 FROM field.ordens_servico os
+    WHERE os.cliente_id = base.cliente_id
+      AND os.mes_referencia = base.mes_referencia
+      AND ( (base.tipo = 'refil'  AND lower(os.tipo) LIKE '%refil%')
+         OR (base.tipo = 'visita' AND (lower(os.tipo) NOT LIKE '%refil%' OR os.tipo IS NULL)) )
+  ) AS agendado_field
 FROM base
 ORDER BY
   mes_referencia DESC,
