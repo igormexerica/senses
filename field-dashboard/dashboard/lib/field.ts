@@ -165,6 +165,16 @@ export const getGapsMes = (mes: string, limit = 1000) =>
     limit: String(limit),
   });
 
+export interface AvaliacaoMensal {
+  mes_referencia: string;
+  qtd: number;
+  media: number | null;
+  criticas: number;
+}
+
+export const getAvaliacaoMensal = () =>
+  fieldGet<AvaliacaoMensal>("v_avaliacao_mensal", { order: "mes_referencia.asc" });
+
 /** Meses com dados (desc), pra alimentar os seletores. */
 export const getMesesDisponiveis = async (): Promise<string[]> => {
   const rows = await fieldGet<{ mes_referencia: string }>("v_evolucao_mensal", {

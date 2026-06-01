@@ -1,7 +1,9 @@
 import {
   getEvolucao,
   getMesesDisponiveis,
+  getAvaliacaoMensal,
   type EvolucaoMensal,
+  type AvaliacaoMensal,
 } from "@/lib/field";
 import { mesAtualISO, mesLabel, num, pct, deltaPp, ppLabel } from "@/lib/format";
 import {
@@ -43,8 +45,13 @@ export default async function EvolucaoPage({
 }) {
   let rows: EvolucaoMensal[];
   let meses: string[];
+  let avals: AvaliacaoMensal[];
   try {
-    [rows, meses] = await Promise.all([getEvolucao(), getMesesDisponiveis()]);
+    [rows, meses, avals] = await Promise.all([
+      getEvolucao(),
+      getMesesDisponiveis(),
+      getAvaliacaoMensal(),
+    ]);
   } catch (error) {
     return (
       <>
@@ -55,6 +62,7 @@ export default async function EvolucaoPage({
   }
 
   const agg = agregar(rows);
+  const avalMap = new Map(avals.map((a) => [a.mes_referencia, a]));
   const atual = mesAtualISO();
   const completos = agg.filter((m) => m.mes < atual); // mês corrente está em curso
 
@@ -141,6 +149,12 @@ export default async function EvolucaoPage({
                 pp
               />
               <CompRow
+                label="Avaliação média (1–5)"
+                av={avalMap.get(a)?.media}
+                bv={avalMap.get(b)?.media}
+                fmt={nota}
+              />
+              <CompRow
                 label="Gaps abertos"
                 av={aggA?.gaps}
                 bv={aggB?.gaps}
@@ -171,7 +185,10 @@ export default async function EvolucaoPage({
                 <th className="px-3 py-2 text-right font-medium" title="refil concluído com código de rastreio">
                   Refil c/ rastreio
                 </th>
-                <th className="px-4 py-2 text-right font-medium sm:px-5">Gaps</th>
+                <th className="px-3 py-2 text-right font-medium">Gaps</th>
+                <th className="px-4 py-2 text-right font-medium sm:px-5" title="nota média 1–5 (amostra do mês)">
+                  Avaliação
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -200,8 +217,23 @@ export default async function EvolucaoPage({
                         pct(m.refil.cobertura_pct)
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums font-medium text-slate-800 sm:px-5">
+                    <td className="px-3 py-2.5 text-right tabular-nums font-medium text-slate-800">
                       {num(m.gaps)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums sm:px-5">
+                      {(() => {
+                        const av = avalMap.get(m.mes);
+                        if (!av || av.media === null) return <span className="text-slate-300">—</span>;
+                        return (
+                          <span
+                            className={av.criticas > 0 ? "text-amber-700" : "text-slate-700"}
+                            title={`${av.qtd} avaliação(ões)${av.criticas ? `, ${av.criticas} crítica(s)` : ""}`}
+                          >
+                            <span className="text-amber-500">★</span> {nota(av.media)}
+                            <span className="ml-1 text-[11px] text-slate-400">({av.qtd})</span>
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );
@@ -212,6 +244,11 @@ export default async function EvolucaoPage({
       </Card>
     </>
   );
+}
+
+function nota(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—";
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function CompRow({
