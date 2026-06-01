@@ -1,12 +1,27 @@
 /**
  * Verificação de HTTP Basic Auth compartilhada entre o proxy (gate global) e
  * as server actions (defense-in-depth — a escrita não depende só do matcher).
+ *
+ * Multi-usuário: DASHBOARD_USER/DASHBOARD_PASS (1º usuário) + DASHBOARD_USERS
+ * ("email:senha,email:senha"). Senhas não podem conter ':' nem ',' (geramos
+ * alfanuméricas).
  */
+function credenciais(): Array<[string, string]> {
+  const pares: Array<[string, string]> = [];
+  const u = (process.env.DASHBOARD_USER ?? "").trim();
+  const p = process.env.DASHBOARD_PASS ?? "";
+  if (u && p) pares.push([u, p]);
+  for (const item of (process.env.DASHBOARD_USERS ?? "").split(",")) {
+    const i = item.indexOf(":");
+    if (i > 0) pares.push([item.slice(0, i).trim(), item.slice(i + 1).trim()]);
+  }
+  return pares;
+}
+
 export function checkBasic(header: string | null | undefined): boolean {
-  const USER = process.env.DASHBOARD_USER ?? "";
-  const PASS = process.env.DASHBOARD_PASS ?? "";
+  const pares = credenciais();
   // sem credenciais configuradas: não trava (evita lockout acidental)
-  if (!USER && !PASS) return true;
+  if (pares.length === 0) return true;
   if (!header?.startsWith("Basic ")) return false;
   let decoded = "";
   try {
@@ -15,7 +30,10 @@ export function checkBasic(header: string | null | undefined): boolean {
     return false;
   }
   const i = decoded.indexOf(":");
-  return i >= 0 && decoded.slice(0, i) === USER && decoded.slice(i + 1) === PASS;
+  if (i < 0) return false;
+  const u = decoded.slice(0, i);
+  const p = decoded.slice(i + 1);
+  return pares.some(([eu, ep]) => eu === u && ep === p);
 }
 
 /** UUID v4-ish (formato), pra validar ids vindos de formulário antes de ir pro banco. */
