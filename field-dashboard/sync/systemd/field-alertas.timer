@@ -1,0 +1,12 @@
+[Unit]
+Description=Dispara notificar_alertas (depois do agente)
+
+[Timer]
+# Minuto 20 de cada hora: o agente roda em :10, então os criticos novos saem aqui.
+OnCalendar=*:20
+Persistent=true
+RandomizedDelaySec=120
+Unit=field-alertas.service
+
+[Install]
+WantedBy=timers.target

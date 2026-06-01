@@ -118,6 +118,19 @@ class SupabaseClient:
         stop=stop_after_attempt(4),
         reraise=True,
     )
+    def patch(self, table: str, params: dict, values: dict) -> None:
+        """PATCH (UPDATE) numa tabela com filtro PostgREST (ex.: {'id': 'eq.<uuid>'})."""
+        url = f"{self.url}/rest/v1/{table}"
+        resp = self._client.patch(url, params=params, json=values)
+        resp.raise_for_status()
+        return None
+
+    @retry(
+        retry=retry_if_exception_type((httpx.TransportError, httpx.HTTPStatusError)),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        stop=stop_after_attempt(4),
+        reraise=True,
+    )
     def count(self, table: str, params: dict | None = None) -> int:
         """COUNT exato via header Content-Range (Prefer: count=exact). Aceita filtros."""
         url = f"{self.url}/rest/v1/{table}"

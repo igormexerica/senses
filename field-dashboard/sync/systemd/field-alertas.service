@@ -1,0 +1,14 @@
+[Unit]
+Description=Field — notifica alertas criticos do CS (Telegram)
+After=network-online.target field-agente.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/senses/field-dashboard/sync
+ExecStart=/root/senses/field-dashboard/sync/.venv/bin/python notificar_alertas.py
+TimeoutStartSec=300
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
