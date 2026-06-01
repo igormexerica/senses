@@ -10,6 +10,7 @@ export const LINKS = [
   { href: "/inventario", label: "Inventário", icon: "▤" },
   { href: "/gaps", label: "Gaps do mês", icon: "▲" },
   { href: "/acoes", label: "Ações", icon: "✓" },
+  { href: "/revisar", label: "Revisar", icon: "⚑" },
   { href: "/avaliacoes", label: "Avaliações", icon: "★" },
 ];
 

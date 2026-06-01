@@ -275,6 +275,39 @@ export const getGapsCliente = (id: string) =>
     order: "mes_referencia.desc",
   });
 
+// ---------------------------------------------------------------------------
+// Revisões (refis sem rastreio + jornada desalinhada) — views já existentes
+// ---------------------------------------------------------------------------
+export interface RefilSemRastreio {
+  expectativa_id: string;
+  cliente_codigo: string;
+  cliente_nome: string;
+  os_codigo: string;
+  os_status: string | null;
+  concluida_em: string | null;
+  mes_referencia: string;
+  dias_sem_rastreio: number | null;
+}
+
+export interface AuditJornada {
+  id: string; // = cliente_id
+  codigo_field: string;
+  nome: string;
+  meses_de_casa: number | null;
+  jornada_atual: string | null;
+  jornada_esperada: string | null;
+  situacao: string; // 'desalinhado' | 'sem_etiqueta'
+}
+
+export const getRefisSemRastreio = () =>
+  fieldGet<RefilSemRastreio>("v_refis_sem_rastreio", {
+    order: "dias_sem_rastreio.desc.nullslast",
+    limit: "500",
+  });
+
+export const getAuditJornada = () =>
+  fieldGet<AuditJornada>("v_audit_jornada", { order: "meses_de_casa.desc", limit: "500" });
+
 export interface AtividadeDia {
   dia: string;
   concluidas: number;
