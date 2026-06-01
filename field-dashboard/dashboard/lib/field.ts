@@ -7,7 +7,10 @@ import "server-only";
 import { mesAtualISO } from "./format";
 
 const BASE = process.env.SUPABASE_URL ?? "http://localhost:8000";
-const KEY = process.env.SUPABASE_ANON_KEY ?? "";
+// Leitura server-side com SERVICE_ROLE (o dashboard está atrás do login). O anon
+// não lê mais o schema `field` no PostgREST público (ver 11-lockdown.sql).
+// Fallback p/ anon só por segurança caso a service_role não esteja setada.
+const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "";
 
 export async function fieldGet<T = unknown>(
   path: string,
