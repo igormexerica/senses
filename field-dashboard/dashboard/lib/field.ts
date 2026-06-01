@@ -4,6 +4,7 @@
  * As views consultadas têm GRANT SELECT pra anon (ver 02-views / 05-equipamentos).
  */
 import "server-only";
+import { mesAtualISO } from "./format";
 
 const BASE = process.env.SUPABASE_URL ?? "http://localhost:8000";
 const KEY = process.env.SUPABASE_ANON_KEY ?? "";
@@ -109,12 +110,7 @@ export interface AvaliacaoCritica {
 // ---------------------------------------------------------------------------
 // Consultas
 // ---------------------------------------------------------------------------
-const mesAtual = () => {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
-};
-
-export const getCoberturaMes = (mes = mesAtual()) =>
+export const getCoberturaMes = (mes = mesAtualISO()) =>
   fieldGet<CoberturaMensal>("v_cobertura_mensal", { mes_referencia: `eq.${mes}` });
 
 export const getGaps = (limit = 500) =>
@@ -137,3 +133,43 @@ export const getAvaliacoesCriticas = (limit = 200) =>
     order: "data_avaliacao.desc",
     limit: String(limit),
   });
+
+// ---------------------------------------------------------------------------
+// Evolução mensal + gaps por mês (página Evolução e seletores de mês)
+// ---------------------------------------------------------------------------
+export interface EvolucaoMensal {
+  mes_referencia: string;
+  tipo: TipoExpectativa;
+  total: number;
+  pendente: number;
+  em_execucao: number;
+  atendida: number;
+  com_rastreio: number;
+  realizado: number;
+  realizado_pct: number | null;
+  cobertura_pct: number | null;
+}
+
+export interface GapMensal extends Gap {
+  mes_referencia: string;
+}
+
+export const getEvolucao = () =>
+  fieldGet<EvolucaoMensal>("v_evolucao_mensal", {
+    order: "mes_referencia.asc,tipo.asc",
+  });
+
+export const getGapsMes = (mes: string, limit = 1000) =>
+  fieldGet<GapMensal>("v_gaps_mensais", {
+    mes_referencia: `eq.${mes}`,
+    limit: String(limit),
+  });
+
+/** Meses com dados (desc), pra alimentar os seletores. */
+export const getMesesDisponiveis = async (): Promise<string[]> => {
+  const rows = await fieldGet<{ mes_referencia: string }>("v_evolucao_mensal", {
+    select: "mes_referencia",
+    order: "mes_referencia.desc",
+  });
+  return [...new Set(rows.map((r) => r.mes_referencia))];
+};

@@ -1,19 +1,34 @@
-import { getGaps } from "@/lib/field";
-import { mesLabel } from "@/lib/format";
+import { getGapsMes, getMesesDisponiveis } from "@/lib/field";
+import { mesAtualISO, mesLabel, resolverMes } from "@/lib/format";
 import { PageHeader, ErrorState } from "@/components/ui";
 import { GapsTable } from "@/components/gaps-table";
+import { MonthPicker } from "@/components/month-picker";
 
 export const dynamic = "force-dynamic";
 
-const mesAtualISO = () => {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
-};
+export default async function GapsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
+  const sp = await searchParams;
 
-export default async function GapsPage() {
-  let gaps: Awaited<ReturnType<typeof getGaps>>;
+  let meses: string[];
+  let gaps: Awaited<ReturnType<typeof getGapsMes>>;
   try {
-    gaps = await getGaps(1000);
+    meses = await getMesesDisponiveis();
+    const mes = resolverMes(sp.mes, meses, mesAtualISO());
+    gaps = await getGapsMes(mes, 1000);
+    return (
+      <>
+        <PageHeader
+          title="Gaps do mês"
+          subtitle={`Expectativas pendentes ou em execução — ${mesLabel(mes)}`}
+          right={<MonthPicker months={meses} value={mes} label="Mês" />}
+        />
+        <GapsTable rows={gaps} />
+      </>
+    );
   } catch (error) {
     return (
       <>
@@ -22,14 +37,4 @@ export default async function GapsPage() {
       </>
     );
   }
-
-  return (
-    <>
-      <PageHeader
-        title="Gaps do mês"
-        subtitle={`Expectativas pendentes ou em execução — ${mesLabel(mesAtualISO())}`}
-      />
-      <GapsTable rows={gaps} />
-    </>
-  );
 }

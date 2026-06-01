@@ -1,5 +1,29 @@
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
+/** Primeiro dia do mês corrente no fuso do negócio (America/Sao_Paulo) -> "YYYY-MM-01".
+ *  Evita virada de mês errada no fim do dia (o host roda em UTC). */
+export function mesAtualISO(): string {
+  const ymd = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return `${ymd.slice(0, 7)}-01`;
+}
+
+/** valida/normaliza um mês vindo da URL contra a lista disponível.
+ *  Retorna o mês se válido; senão o preferido (default) ou o 1º disponível. */
+export function resolverMes(
+  candidato: string | undefined,
+  disponiveis: string[],
+  preferido?: string,
+): string {
+  if (candidato && disponiveis.includes(candidato)) return candidato;
+  if (preferido && disponiveis.includes(preferido)) return preferido;
+  return disponiveis[0] ?? (preferido ?? mesAtualISO());
+}
+
 /** "2026-05-01" -> "mai/2026" */
 export function mesLabel(iso: string | null): string {
   if (!iso) return "—";
@@ -36,6 +60,31 @@ export function num(n: number | null | undefined): string {
 export function pct(n: number | null | undefined): string {
   if (n === null || n === undefined) return "—";
   return `${Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+}
+
+/** "2026-05-01" -> "2026-04-01" (mês anterior, sempre dia 1) */
+export function mesAnteriorISO(iso: string): string {
+  const [y, m] = iso.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1, 1));
+  d.setUTCMonth(d.getUTCMonth() - 1);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
+}
+
+/** diferença em pontos percentuais (atual - anterior), arredondada a 1 casa */
+export function deltaPp(
+  atual: number | null | undefined,
+  anterior: number | null | undefined,
+): number | null {
+  if (atual === null || atual === undefined || anterior === null || anterior === undefined)
+    return null;
+  return Math.round((atual - anterior) * 10) / 10;
+}
+
+/** "+4,2 pp" / "-1,3 pp" / "0 pp" */
+export function ppLabel(d: number | null): string {
+  if (d === null) return "—";
+  const s = d > 0 ? "+" : "";
+  return `${s}${d.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} pp`;
 }
 
 /** "há 2h", "há 3d" — quanto tempo desde uma data passada */
