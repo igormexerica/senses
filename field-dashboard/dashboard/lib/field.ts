@@ -196,6 +196,22 @@ export const getPlanosAcao = () => fieldGet<PlanoAcao>("planos_acao", {});
 export const getVPlanosAcao = () =>
   fieldGet<PlanoAcaoView>("v_planos_acao", { order: "updated_at.desc" });
 
+export interface AtividadeDia {
+  dia: string;
+  concluidas: number;
+  visitas: number;
+  refis: number;
+  avaliacoes: number;
+  nota_media: number | null;
+}
+
+export const getAtividadeDiaria = (desde: string) =>
+  fieldGet<AtividadeDia>("v_atividade_diaria", {
+    dia: `gte.${desde}`,
+    order: "dia.asc",
+    limit: "400",
+  });
+
 export interface AvaliacaoMensal {
   mes_referencia: string;
   qtd: number;

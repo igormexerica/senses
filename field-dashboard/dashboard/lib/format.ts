@@ -12,6 +12,39 @@ export function mesAtualISO(): string {
   return `${ymd.slice(0, 7)}-01`;
 }
 
+/** Hoje no fuso do negócio (YYYY-MM-DD). */
+export function hojeISO(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+/** "YYYY-MM-DD" - n dias. */
+export function diasAtras(iso: string, n: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - n);
+  return dt.toISOString().slice(0, 10);
+}
+
+/** segunda-feira da semana de uma data (YYYY-MM-DD). */
+export function inicioSemanaISO(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dow = (dt.getUTCDay() + 6) % 7; // segunda = 0
+  dt.setUTCDate(dt.getUTCDate() - dow);
+  return dt.toISOString().slice(0, 10);
+}
+
+/** "2026-06-01" -> "01/06" */
+export function diaCurto(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
 /** valida/normaliza um mês vindo da URL contra a lista disponível.
  *  Retorna o mês se válido; senão o preferido (default) ou o 1º disponível. */
 export function resolverMes(
