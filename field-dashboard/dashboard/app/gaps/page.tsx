@@ -1,4 +1,4 @@
-import { getGapsMes, getMesesDisponiveis } from "@/lib/field";
+import { getGapsMes, getMesesDisponiveis, getPlanosAcao, type PlanoAcao } from "@/lib/field";
 import { mesAtualISO, mesLabel, resolverMes } from "@/lib/format";
 import { PageHeader, ErrorState } from "@/components/ui";
 import { GapsTable } from "@/components/gaps-table";
@@ -18,7 +18,10 @@ export default async function GapsPage({
   try {
     meses = await getMesesDisponiveis();
     const mes = resolverMes(sp.mes, meses, mesAtualISO());
-    gaps = await getGapsMes(mes, 1000);
+    const [gapsRes, planosRes] = await Promise.all([getGapsMes(mes, 1000), getPlanosAcao()]);
+    gaps = gapsRes;
+    const planos: Record<string, PlanoAcao> = {};
+    for (const p of planosRes) planos[p.expectativa_id] = p;
     return (
       <>
         <PageHeader
@@ -26,7 +29,7 @@ export default async function GapsPage({
           subtitle={`Expectativas pendentes ou em execução — ${mesLabel(mes)}`}
           right={<MonthPicker months={meses} value={mes} label="Mês" />}
         />
-        <GapsTable rows={gaps} />
+        <GapsTable rows={gaps} planos={planos} />
       </>
     );
   } catch (error) {

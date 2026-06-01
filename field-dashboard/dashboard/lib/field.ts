@@ -165,6 +165,37 @@ export const getGapsMes = (mes: string, limit = 1000) =>
     limit: String(limit),
   });
 
+// ---------------------------------------------------------------------------
+// Planos de ação (CS marca ação sobre um gap)
+// ---------------------------------------------------------------------------
+export type StatusAcao = "agendado" | "em_contato" | "aguardando_cliente" | "resolvido";
+
+export interface PlanoAcao {
+  id: string;
+  expectativa_id: string;
+  status: StatusAcao;
+  responsavel: string | null;
+  nota: string | null;
+  updated_at: string;
+}
+
+export interface PlanoAcaoView extends PlanoAcao {
+  tipo: TipoExpectativa;
+  mes_referencia: string;
+  expectativa_status: string;
+  cliente_id: string;
+  codigo_field: string;
+  cliente_nome: string;
+  tier: string | null;
+  jornada_atual: string | null;
+  modalidade: string | null;
+}
+
+export const getPlanosAcao = () => fieldGet<PlanoAcao>("planos_acao", {});
+
+export const getVPlanosAcao = () =>
+  fieldGet<PlanoAcaoView>("v_planos_acao", { order: "updated_at.desc" });
+
 export interface AvaliacaoMensal {
   mes_referencia: string;
   qtd: number;

@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Gap, Criticidade, TipoExpectativa } from "@/lib/field";
+import type { Gap, Criticidade, TipoExpectativa, PlanoAcao } from "@/lib/field";
 import { num } from "@/lib/format";
 import { CriticidadeBadge, Tag, EmptyState } from "@/components/ui";
+import { AcaoControl } from "@/components/acao-control";
 
 const CRITS: Criticidade[] = ["critico", "alto", "medio", "estavel"];
 const CRIT_LABEL: Record<Criticidade, string> = {
@@ -17,18 +18,28 @@ const STATUS_LABEL: Record<string, string> = {
   em_execucao: "Em execução",
 };
 
-export function GapsTable({ rows }: { rows: Gap[] }) {
+export function GapsTable({
+  rows,
+  planos = {},
+}: {
+  rows: Gap[];
+  planos?: Record<string, PlanoAcao>;
+}) {
   const [crit, setCrit] = useState<Criticidade | "all">("all");
   const [tipo, setTipo] = useState<TipoExpectativa | "all">("all");
+  const [acao, setAcao] = useState<"all" | "sem" | "com">("all");
 
   const filtered = useMemo(
     () =>
-      rows.filter(
-        (r) =>
+      rows.filter((r) => {
+        const temAcao = !!planos[r.expectativa_id];
+        return (
           (crit === "all" || r.criticidade === crit) &&
-          (tipo === "all" || r.tipo === tipo),
-      ),
-    [rows, crit, tipo],
+          (tipo === "all" || r.tipo === tipo) &&
+          (acao === "all" || (acao === "com" ? temAcao : !temAcao))
+        );
+      }),
+    [rows, crit, tipo, acao, planos],
   );
 
   const chip = (active: boolean) =>
@@ -56,6 +67,13 @@ export function GapsTable({ rows }: { rows: Gap[] }) {
             </button>
           ))}
         </div>
+        <div className="flex items-center gap-1.5">
+          {(["all", "sem", "com"] as const).map((aF) => (
+            <button key={aF} onClick={() => setAcao(aF)} className={chip(acao === aF)}>
+              {aF === "all" ? "Tudo" : aF === "sem" ? "Sem ação" : "Com ação"}
+            </button>
+          ))}
+        </div>
         <span className="ml-auto text-xs text-slate-400">
           {num(filtered.length)} de {num(rows.length)}
         </span>
@@ -72,7 +90,8 @@ export function GapsTable({ rows }: { rows: Gap[] }) {
                 <th className="px-3 py-2 font-medium">Tipo</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Segmento</th>
-                <th className="px-4 py-2 text-right font-medium sm:px-5">Criticidade</th>
+                <th className="px-3 py-2 text-right font-medium">Criticidade</th>
+                <th className="px-4 py-2 font-medium sm:px-5">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -92,8 +111,11 @@ export function GapsTable({ rows }: { rows: Gap[] }) {
                       {g.modalidade && <Tag>{g.modalidade}</Tag>}
                     </div>
                   </td>
-                  <td className="px-4 py-2.5 text-right sm:px-5">
+                  <td className="px-3 py-2.5 text-right">
                     <CriticidadeBadge value={g.criticidade} />
+                  </td>
+                  <td className="px-4 py-2.5 sm:px-5">
+                    <AcaoControl expectativaId={g.expectativa_id} plano={planos[g.expectativa_id]} />
                   </td>
                 </tr>
               ))}
