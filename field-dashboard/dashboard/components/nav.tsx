@@ -12,6 +12,7 @@ export const LINKS = [
   { href: "/acoes", label: "Ações", icon: "✓" },
   { href: "/revisar", label: "Revisar", icon: "⚑" },
   { href: "/avaliacoes", label: "Avaliações", icon: "★" },
+  { href: "/processos", label: "Processos", icon: "❔" },
 ];
 
 function isActive(pathname: string, href: string) {
