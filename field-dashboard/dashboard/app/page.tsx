@@ -78,6 +78,7 @@ export default async function OverviewPage({
 
   // gaps acionáveis = sem agendamento no Field (os com OS agendada já estão a caminho)
   const semAgend = gaps.filter((g) => !g.agendado_field);
+  const agendados = gaps.length - semAgend.length;
   const criticos = semAgend.filter((g) => g.criticidade === "critico").length;
   const topGaps = semAgend.slice(0, 8);
 
@@ -123,7 +124,7 @@ export default async function OverviewPage({
         <Stat
           label="Sem agendamento"
           value={num(semAgend.length)}
-          sub={`${num(criticos)} crítico(s) · ${num(gaps.length)} gaps no total`}
+          sub={`${num(agendados)} já agendados · ${num(criticos)} crítico(s)`}
           tone={criticos > 0 ? "bad" : semAgend.length > 0 ? "warn" : "good"}
         />
         <Stat
@@ -151,7 +152,7 @@ export default async function OverviewPage({
         </Card>
 
         <Card>
-          <CardTitle hint={`${num(semAgend.length)} sem agendamento`}>A agir (sem agendamento)</CardTitle>
+          <CardTitle hint={`${num(agendados)} já agendados`}>A agir (sem agendamento)</CardTitle>
           {topGaps.length === 0 ? (
             <EmptyState>Tudo agendado. 🎉</EmptyState>
           ) : (

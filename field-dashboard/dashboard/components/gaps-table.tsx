@@ -52,6 +52,7 @@ export function GapsTable({
   );
 
   const semAgendamento = rows.filter((r) => !r.agendado_field).length;
+  const agendados = rows.length - semAgendamento;
 
   const chip = (active: boolean) =>
     `rounded-full px-3 py-1 text-xs font-medium transition-colors ${
@@ -85,8 +86,10 @@ export function GapsTable({
             </button>
           ))}
         </div>
-        <span className="ml-auto text-xs text-slate-400">
-          {num(filtered.length)} de {num(rows.length)} · {num(semAgendamento)} sem agendamento
+        <span className="ml-auto flex items-center gap-2 text-xs">
+          <span className="text-slate-400">{num(filtered.length)} de {num(rows.length)}</span>
+          <span className="font-medium text-emerald-600">{num(agendados)} agendados</span>
+          <span className="font-medium text-amber-600">{num(semAgendamento)} a agir</span>
         </span>
       </div>
 
