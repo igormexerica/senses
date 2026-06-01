@@ -308,6 +308,17 @@ export const getRefisSemRastreio = () =>
 export const getAuditJornada = () =>
   fieldGet<AuditJornada>("v_audit_jornada", { order: "meses_de_casa.desc", limit: "500" });
 
+export interface EquipSemModelo {
+  id: string;
+  numero: string | null;
+  nome: string | null;
+  cliente_id: string;
+  cliente_nome: string;
+}
+
+export const getEquipSemModelo = () =>
+  fieldGet<EquipSemModelo>("v_equip_sem_modelo", { order: "cliente_nome.asc", limit: "600" });
+
 export interface AtividadeDia {
   dia: string;
   concluidas: number;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getRefisSemRastreio, getAuditJornada } from "@/lib/field";
+import { getRefisSemRastreio, getAuditJornada, getEquipSemModelo } from "@/lib/field";
 import { mesLabel, dataCurta, num } from "@/lib/format";
 import { PageHeader, Card, CardTitle, Stat, Tag, EmptyState, ErrorState } from "@/components/ui";
 
@@ -8,8 +8,13 @@ export const dynamic = "force-dynamic";
 export default async function RevisarPage() {
   let refis: Awaited<ReturnType<typeof getRefisSemRastreio>>;
   let jornada: Awaited<ReturnType<typeof getAuditJornada>>;
+  let semModelo: Awaited<ReturnType<typeof getEquipSemModelo>>;
   try {
-    [refis, jornada] = await Promise.all([getRefisSemRastreio(), getAuditJornada()]);
+    [refis, jornada, semModelo] = await Promise.all([
+      getRefisSemRastreio(),
+      getAuditJornada(),
+      getEquipSemModelo(),
+    ]);
   } catch (error) {
     return (
       <>
@@ -30,7 +35,7 @@ export default async function RevisarPage() {
         <Stat label="Refis sem rastreio" value={num(refis.length)} tone={refis.length ? "warn" : "good"} />
         <Stat label="Jornada desalinhada" value={num(desalinhados)} tone={desalinhados ? "warn" : "good"} />
         <Stat label="Sem etiqueta de jornada" value={num(semTag)} />
-        <Stat label="Total a revisar" value={num(refis.length + jornada.length)} />
+        <Stat label="Máquinas sem modelo" value={num(semModelo.length)} tone={semModelo.length ? "warn" : "good"} />
       </div>
 
       <Card className="mt-4 lg:mt-6">
@@ -107,6 +112,42 @@ export default async function RevisarPage() {
                         {j.situacao === "desalinhado" ? "Desalinhado" : "Sem etiqueta"}
                       </span>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card className="mt-4 lg:mt-6">
+        <CardTitle hint={`${num(semModelo.length)}`}>Máquinas sem modelo identificado</CardTitle>
+        <div className="border-b border-slate-100 px-4 py-2 text-xs text-slate-400 sm:px-5">
+          Cadastradas no Field com o nome da localização ("RECEPÇÃO", ".") em vez do modelo.
+          O time pode renomear lá usando o número como referência.
+        </div>
+        {semModelo.length === 0 ? (
+          <EmptyState>Todas identificadas. 🎉</EmptyState>
+        ) : (
+          <div className="scroll-x">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
+                  <th className="px-4 py-2 font-medium sm:px-5">Cliente</th>
+                  <th className="px-3 py-2 font-medium">Nº</th>
+                  <th className="px-4 py-2 font-medium sm:px-5">Nome atual no Field</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {semModelo.slice(0, 300).map((e) => (
+                  <tr key={e.id} className="hover:bg-slate-50/60">
+                    <td className="px-4 py-2.5 font-medium sm:px-5">
+                      <Link href={`/cliente/${e.cliente_id}`} className="text-slate-800 hover:text-brand-600 hover:underline">
+                        {e.cliente_nome}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2.5 tabular-nums text-slate-500">{e.numero ? `#${e.numero}` : "—"}</td>
+                    <td className="px-4 py-2.5 text-slate-600 sm:px-5">{e.nome || <span className="italic text-slate-400">(vazio)</span>}</td>
                   </tr>
                 ))}
               </tbody>
