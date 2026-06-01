@@ -191,10 +191,8 @@ export interface PlanoAcaoView extends PlanoAcao {
   modalidade: string | null;
 }
 
-export const getPlanosAcao = () => fieldGet<PlanoAcao>("planos_acao", {});
-
-export const getVPlanosAcao = () =>
-  fieldGet<PlanoAcaoView>("v_planos_acao", { order: "updated_at.desc" });
+// Leitura de planos_acao é PRIVILEGIADA (service_role) — ver lib/field-write.ts.
+// (anon não tem SELECT nessas tabelas; são notas internas do CS.)
 
 export interface AtividadeDia {
   dia: string;

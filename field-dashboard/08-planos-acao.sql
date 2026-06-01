@@ -67,8 +67,12 @@ LEFT JOIN field.v_clientes_segmentados cs ON cs.id = c.id;
 COMMENT ON VIEW field.v_planos_acao IS 'Planos de ação do CS com contexto de cliente e do gap.';
 
 -- =========================================================================
--- PERMISSÕES — service_role escreve; anon/authenticated só leem.
+-- PERMISSÕES — só service_role. planos_acao guarda NOTAS INTERNAS do CS
+-- (responsavel, nota livre, contexto de cliente). O PostgREST público
+-- (supabase.ifops.com.br) NÃO está atrás do login do dashboard, então NÃO
+-- pode ficar legível pelo anon. O dashboard lê via service_role (server-only).
 -- =========================================================================
 GRANT ALL ON field.planos_acao TO service_role;
-GRANT SELECT ON field.planos_acao TO anon, authenticated;
-GRANT SELECT ON field.v_planos_acao TO anon, authenticated, service_role;
+GRANT SELECT ON field.v_planos_acao TO service_role;
+REVOKE SELECT ON field.planos_acao FROM anon, authenticated;
+REVOKE SELECT ON field.v_planos_acao FROM anon, authenticated;

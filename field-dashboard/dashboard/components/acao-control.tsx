@@ -29,12 +29,16 @@ export function AcaoControl({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [saving, setSaving] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   async function onAction(fd: FormData) {
     setSaving(true);
+    setErro(null);
     try {
       await registrarAcao(fd);
       ref.current?.close();
+    } catch {
+      setErro("Não foi possível salvar. Tente de novo.");
     } finally {
       setSaving(false);
     }
@@ -99,6 +103,10 @@ export function AcaoControl({
               className={fieldCls}
             />
           </label>
+
+          {erro && (
+            <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{erro}</p>
+          )}
 
           <div className="mt-4 flex items-center justify-between gap-2">
             {plano ? (

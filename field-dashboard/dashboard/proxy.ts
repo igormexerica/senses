@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkBasic } from "@/lib/auth";
 
 /**
  * HTTP Basic Auth em todo o dashboard (Next 16 "proxy", ex-middleware).
@@ -6,25 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
  * bundle do cliente. Lido em runtime (self-hosted next start).
  */
 export function proxy(req: NextRequest) {
-  const USER = process.env.DASHBOARD_USER ?? "";
-  const PASS = process.env.DASHBOARD_PASS ?? "";
-
-  // Sem credenciais configuradas: não trava (evita lockout acidental).
-  if (!USER && !PASS) return NextResponse.next();
-
-  const header = req.headers.get("authorization");
-  if (header?.startsWith("Basic ")) {
-    let decoded = "";
-    try {
-      decoded = atob(header.slice(6));
-    } catch {
-      decoded = "";
-    }
-    const i = decoded.indexOf(":");
-    const u = i >= 0 ? decoded.slice(0, i) : "";
-    const p = i >= 0 ? decoded.slice(i + 1) : "";
-    if (u === USER && p === PASS) return NextResponse.next();
-  }
+  if (checkBasic(req.headers.get("authorization"))) return NextResponse.next();
 
   return new NextResponse("Autenticação necessária.", {
     status: 401,

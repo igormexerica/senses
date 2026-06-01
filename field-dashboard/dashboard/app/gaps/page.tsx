@@ -1,4 +1,5 @@
-import { getGapsMes, getMesesDisponiveis, getPlanosAcao, type PlanoAcao } from "@/lib/field";
+import { getGapsMes, getMesesDisponiveis, type PlanoAcao } from "@/lib/field";
+import { getPlanosAcao } from "@/lib/field-write";
 import { mesAtualISO, mesLabel, resolverMes } from "@/lib/format";
 import { PageHeader, ErrorState } from "@/components/ui";
 import { GapsTable } from "@/components/gaps-table";

@@ -1,4 +1,4 @@
-import { getVPlanosAcao } from "@/lib/field";
+import { getVPlanosAcao } from "@/lib/field-write";
 import { num } from "@/lib/format";
 import { PageHeader, Stat, ErrorState } from "@/components/ui";
 import { AcoesList } from "@/components/acoes-list";
