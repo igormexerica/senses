@@ -22,6 +22,27 @@ export function hojeISO(): string {
   }).format(new Date());
 }
 
+/** Dia do mês corrente (1–31) no fuso do negócio. */
+export function diaDoMes(): number {
+  return Number(hojeISO().slice(8, 10));
+}
+
+/** Corte: depois deste dia, gap do mês corrente sem agendamento vira "atrasado". */
+export const CORTE_AGENDAMENTO = 20;
+
+/** Estado de cobertura de um gap (sem usar "crítico"). */
+export function estadoGap(
+  agendadoField: boolean | undefined,
+  mesRef: string,
+  mesAtual: string,
+  dia: number,
+): "agendado" | "atrasado" | "sem_agendamento" {
+  if (agendadoField) return "agendado";
+  if (mesRef < mesAtual) return "atrasado"; // mês fechado e não rolou
+  if (mesRef === mesAtual && dia > CORTE_AGENDAMENTO) return "atrasado";
+  return "sem_agendamento";
+}
+
 /** "YYYY-MM-DD" - n dias. */
 export function diasAtras(iso: string, n: number): string {
   const [y, m, d] = iso.split("-").map(Number);

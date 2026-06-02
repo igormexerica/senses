@@ -102,6 +102,43 @@ export function CriticidadeBadge({ value }: { value: Criticidade | null }) {
   );
 }
 
+// Prioridade do gap (tier × jornada) — é ORDEM de atendimento, NÃO alarme.
+const PRIO_LABEL: Record<Criticidade, string> = {
+  critico: "Máxima",
+  alto: "Alta",
+  medio: "Média",
+  estavel: "Baixa",
+};
+const PRIO_STYLE: Record<Criticidade, string> = {
+  critico: "bg-indigo-100 text-indigo-700 ring-indigo-200",
+  alto: "bg-sky-100 text-sky-700 ring-sky-200",
+  medio: "bg-slate-100 text-slate-600 ring-slate-200",
+  estavel: "bg-slate-50 text-slate-400 ring-slate-200",
+};
+export function PrioridadeBadge({ value }: { value: Criticidade | null }) {
+  if (!value) return <span className="text-slate-400">—</span>;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${PRIO_STYLE[value]}`}>
+      {PRIO_LABEL[value]}
+    </span>
+  );
+}
+
+export type EstadoGap = "agendado" | "atrasado" | "sem_agendamento";
+const ESTADO: Record<EstadoGap, { label: string; cls: string }> = {
+  agendado: { label: "Agendado", cls: "bg-emerald-100 text-emerald-700 ring-emerald-200" },
+  atrasado: { label: "Atrasado", cls: "bg-red-100 text-red-700 ring-red-200" },
+  sem_agendamento: { label: "Sem agendamento", cls: "bg-slate-100 text-slate-500 ring-slate-200" },
+};
+export function EstadoTag({ value }: { value: EstadoGap }) {
+  const m = ESTADO[value];
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${m.cls}`} title={value === "agendado" ? "agendado no Field" : value === "atrasado" ? "passou do dia 20 sem agendamento" : "ainda há tempo no mês"}>
+      {m.label}
+    </span>
+  );
+}
+
 export function Tag({ children }: { children: ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">

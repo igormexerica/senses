@@ -2,58 +2,39 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { Gap, Criticidade, TipoExpectativa, PlanoAcao } from "@/lib/field";
-import { num } from "@/lib/format";
-import { CriticidadeBadge, Tag, EmptyState } from "@/components/ui";
+import type { GapMensal, TipoExpectativa, PlanoAcao } from "@/lib/field";
+import { num, estadoGap } from "@/lib/format";
+import { PrioridadeBadge, EstadoTag, Tag, EmptyState } from "@/components/ui";
 import { AcaoControl } from "@/components/acao-control";
 
-const CRITS: Criticidade[] = ["critico", "alto", "medio", "estavel"];
-const CRIT_LABEL: Record<Criticidade, string> = {
-  critico: "Crítico",
-  alto: "Alto",
-  medio: "Médio",
-  estavel: "Estável",
-};
 const STATUS_LABEL: Record<string, string> = {
   pendente: "Pendente",
   em_execucao: "Em execução",
 };
 
-function AgendadoFieldTag() {
-  return (
-    <span
-      className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
-      title="Já agendado no Field Control (puxado automaticamente)"
-    >
-      Agendado
-    </span>
-  );
-}
-
 export function GapsTable({
   rows,
   planos = {},
+  mesAtual,
+  dia,
 }: {
-  rows: Gap[];
+  rows: GapMensal[];
   planos?: Record<string, PlanoAcao>;
+  mesAtual: string;
+  dia: number;
 }) {
-  const [crit, setCrit] = useState<Criticidade | "all">("all");
   const [tipo, setTipo] = useState<TipoExpectativa | "all">("all");
-  const [ag, setAg] = useState<"all" | "sem" | "agendado">("all");
+  const [estado, setEstado] = useState<"all" | "atrasado" | "sem_agendamento" | "agendado">("all");
 
-  const filtered = useMemo(
-    () =>
-      rows.filter(
-        (r) =>
-          (crit === "all" || r.criticidade === crit) &&
-          (tipo === "all" || r.tipo === tipo) &&
-          (ag === "all" || (ag === "agendado" ? !!r.agendado_field : !r.agendado_field)),
-      ),
-    [rows, crit, tipo, ag],
+  const comEstado = useMemo(
+    () => rows.map((r) => ({ r, e: estadoGap(r.agendado_field, r.mes_referencia, mesAtual, dia) })),
+    [rows, mesAtual, dia],
   );
-
-  const semAgendamento = rows.filter((r) => !r.agendado_field).length;
-  const agendados = rows.length - semAgendamento;
+  const filtered = comEstado.filter(
+    ({ r, e }) => (tipo === "all" || r.tipo === tipo) && (estado === "all" || e === estado),
+  );
+  const atrasados = comEstado.filter((x) => x.e === "atrasado").length;
+  const semAg = comEstado.filter((x) => x.e === "sem_agendamento").length;
 
   const chip = (active: boolean) =>
     `rounded-full px-3 py-1 text-xs font-medium transition-colors ${
@@ -63,34 +44,23 @@ export function GapsTable({
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate-100 px-4 py-3 sm:px-5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button onClick={() => setCrit("all")} className={chip(crit === "all")}>
-            Todas
-          </button>
-          {CRITS.map((c) => (
-            <button key={c} onClick={() => setCrit(c)} className={chip(crit === c)}>
-              {CRIT_LABEL[c]}
+        <div className="flex items-center gap-1.5">
+          {(["all", "atrasado", "sem_agendamento", "agendado"] as const).map((e) => (
+            <button key={e} onClick={() => setEstado(e)} className={chip(estado === e)}>
+              {e === "all" ? "Todos" : e === "atrasado" ? "Atrasado" : e === "sem_agendamento" ? "Sem agendamento" : "Agendado"}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-1.5">
           {(["all", "visita", "refil"] as const).map((t) => (
             <button key={t} onClick={() => setTipo(t)} className={chip(tipo === t)}>
-              {t === "all" ? "Todos" : t === "visita" ? "Visita" : "Refil"}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1.5">
-          {(["all", "sem", "agendado"] as const).map((a) => (
-            <button key={a} onClick={() => setAg(a)} className={chip(ag === a)}>
-              {a === "all" ? "Tudo" : a === "sem" ? "Sem agendamento" : "Agendado"}
+              {t === "all" ? "Tipos" : t === "visita" ? "Visita" : "Refil"}
             </button>
           ))}
         </div>
         <span className="ml-auto flex items-center gap-2 text-xs">
-          <span className="text-slate-400">{num(filtered.length)} de {num(rows.length)}</span>
-          <span className="font-medium text-emerald-600">{num(agendados)} agendados</span>
-          <span className="font-medium text-amber-600">{num(semAgendamento)} a agir</span>
+          {atrasados > 0 && <span className="font-medium text-red-600">{num(atrasados)} atrasados</span>}
+          <span className="font-medium text-slate-500">{num(semAg)} sem agendamento</span>
         </span>
       </div>
 
@@ -104,35 +74,30 @@ export function GapsTable({
                 <th className="px-4 py-2 font-medium sm:px-5">Cliente</th>
                 <th className="px-3 py-2 font-medium">Tipo</th>
                 <th className="px-3 py-2 font-medium">Segmento</th>
-                <th className="px-3 py-2 text-right font-medium">Criticidade</th>
-                <th className="px-4 py-2 font-medium sm:px-5">Ação</th>
+                <th className="px-3 py-2 font-medium" title="ordem de atendimento (tier × jornada)">Prioridade</th>
+                <th className="px-4 py-2 font-medium sm:px-5">Estado / ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.map((g) => (
+              {filtered.map(({ r: g, e }) => (
                 <tr key={g.expectativa_id} className="hover:bg-slate-50/60">
                   <td className="px-4 py-2.5 font-medium sm:px-5">
                     <Link href={`/cliente/${g.cliente_id}`} className="text-slate-800 hover:text-brand-600 hover:underline">
                       {g.cliente_nome}
                     </Link>
-                    <span className="ml-2 text-[11px] font-normal text-slate-400">
-                      {STATUS_LABEL[g.status] ?? g.status}
-                    </span>
+                    <span className="ml-2 text-[11px] font-normal text-slate-400">{STATUS_LABEL[g.status] ?? g.status}</span>
                   </td>
                   <td className="px-3 py-2.5 capitalize text-slate-600">{g.tipo}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex flex-wrap gap-1">
                       {g.tier && <Tag>{g.tier}</Tag>}
                       {g.jornada_atual && <Tag>{g.jornada_atual}</Tag>}
-                      {g.modalidade && <Tag>{g.modalidade}</Tag>}
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <CriticidadeBadge value={g.criticidade} />
-                  </td>
+                  <td className="px-3 py-2.5"><PrioridadeBadge value={g.criticidade} /></td>
                   <td className="px-4 py-2.5 sm:px-5">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      {g.agendado_field && !planos[g.expectativa_id] && <AgendadoFieldTag />}
+                      {planos[g.expectativa_id] ? null : <EstadoTag value={e} />}
                       <AcaoControl expectativaId={g.expectativa_id} plano={planos[g.expectativa_id]} />
                     </div>
                   </td>

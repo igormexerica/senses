@@ -1,6 +1,6 @@
 import { getGapsMes, getMesesDisponiveis, type PlanoAcao } from "@/lib/field";
 import { getPlanosAcao } from "@/lib/field-write";
-import { mesAtualISO, mesLabel, resolverMes } from "@/lib/format";
+import { mesAtualISO, mesLabel, resolverMes, diaDoMes } from "@/lib/format";
 import { PageHeader, ErrorState } from "@/components/ui";
 import { GapsTable } from "@/components/gaps-table";
 import { MonthPicker } from "@/components/month-picker";
@@ -27,10 +27,10 @@ export default async function GapsPage({
       <>
         <PageHeader
           title="Gaps do mês"
-          subtitle={`Expectativas pendentes ou em execução — ${mesLabel(mes)}`}
+          subtitle={`O que falta agendar/atrasou — ${mesLabel(mes)}`}
           right={<MonthPicker months={meses} value={mes} label="Mês" />}
         />
-        <GapsTable rows={gaps} planos={planos} />
+        <GapsTable rows={gaps} planos={planos} mesAtual={mesAtualISO()} dia={diaDoMes()} />
       </>
     );
   } catch (error) {

@@ -14,7 +14,7 @@ import {
   CardTitle,
   Stat,
   Tag,
-  CriticidadeBadge,
+  PrioridadeBadge,
   EmptyState,
   ErrorState,
 } from "@/components/ui";
@@ -149,7 +149,7 @@ export default async function ClientePage({
                       {g.tipo} · {mesLabel(g.mes_referencia)}
                     </span>
                     <div className="flex items-center gap-1.5">
-                      <CriticidadeBadge value={g.criticidade} />
+                      <PrioridadeBadge value={g.criticidade} />
                       {p ? (
                         <Tag>{p.status.replace(/_/g, " ")}</Tag>
                       ) : g.agendado_field ? (
