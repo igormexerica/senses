@@ -197,6 +197,7 @@ JOIN field.clientes c ON c.id = e.cliente_id
 LEFT JOIN field.ordens_servico os ON os.id = e.os_atendendo
 WHERE e.tipo = 'refil'
   AND e.status = 'em_execucao'
+  AND e.mes_referencia >= DATE '2026-01-01'   -- PISO: início do acompanhamento efetivo (rastreio não era controlado antes)
 ORDER BY e.mes_referencia DESC, os.concluida_em ASC;
 
 -- =========================================================================

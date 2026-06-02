@@ -94,6 +94,7 @@ SELECT
   round(100.0 * count(*) FILTER (WHERE e.status IN ('atendida','atendida_com_rastreio'))
         / nullif(count(*), 0), 1)                                      AS cobertura_pct
 FROM field.expectativas e
+WHERE e.mes_referencia >= DATE '2026-01-01'   -- PISO: início do acompanhamento efetivo (antes o controle era diferente)
 GROUP BY e.mes_referencia, e.tipo;
 
 COMMENT ON VIEW field.v_evolucao_mensal IS 'Cobertura mês a mês pra página Evolução. realizado_pct = entregue (não-pendente, métrica-título); cobertura_pct = estrita (com rastreio p/ refil), casa com v_cobertura_mensal.';
@@ -129,6 +130,7 @@ WITH base AS (
   JOIN field.clientes c ON c.id = e.cliente_id
   LEFT JOIN field.v_clientes_segmentados cs ON cs.id = c.id
   WHERE e.status IN ('pendente', 'em_execucao')
+    AND e.mes_referencia >= DATE '2026-01-01'   -- PISO: início do acompanhamento efetivo
 )
 SELECT
   expectativa_id,
