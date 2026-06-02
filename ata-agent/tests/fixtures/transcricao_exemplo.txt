@@ -1,0 +1,49 @@
+Reunião semanal de status — E-commerce B2C Casa Senses
+Terça-feira, 09/06/2026, 16h (Google Meet)
+Presentes: Igor Oliveira (gestor do projeto), Marina (CEO), Rafael (Gestor de Marketing)
+
+Marina: Bom, pra começar, como tá o andamento geral?
+
+Igor: A gente avançou bem na parte de catálogo. Subimos 120 SKUs com fotos e descrição
+fechada, falta só revisar a categorização de uns 20 produtos. A integração de pagamento
+com a Pagar.me já tá em homologação, passou nos testes de cartão e Pix.
+
+Rafael: Show. E a página de campanha do lançamento?
+
+Igor: Essa ficou pronta, o layout já está aprovado. Tô só esperando os textos finais que
+você ia mandar, Rafael.
+
+Rafael: Verdade, te mando até sexta.
+
+Marina: E o que tá me preocupando é a logística. A gente já definiu como vai ser o
+fulfillment B2C?
+
+Igor: Então, esse é o ponto crítico. A operação de logística ainda está sendo
+reestruturada pelo time de operações, então a gente ainda não tem o fluxo de expedição
+B2C fechado. Isso trava a definição de prazos de entrega no site.
+
+Marina: Ok, isso é prioridade. Sem logística não tem go-live. Eu decido o seguinte:
+a data de go-live só será fechada depois que a logística estiver definida. Não vamos
+marcar lançamento no escuro.
+
+Rafael: Concordo. E sobre o domínio? Vamos usar casasenses.com.br ou loja.casasenses.com.br?
+
+Marina: Vamos no casasenses.com.br principal mesmo, decisão fechada. O Igor encaminha
+com o time de TI.
+
+Igor: Fechado. Anota aí que eu cuido do apontamento do domínio.
+
+Rafael: Eu posso começar a estruturar as campanhas de tráfego pago em paralelo, pra
+quando o site abrir já estar tudo pronto.
+
+Marina: Boa. Rafael, monta o plano de mídia.
+
+Igor: Uma coisa que ainda está em aberto é a questão fiscal — emissão de nota para venda
+B2C. Preciso confirmar com a contabilidade se já está tudo configurado.
+
+Marina: Isso também é bloqueante pro go-live. Resolve com a contabilidade.
+
+Igor: Beleza. Então pra fechar: catálogo quase pronto, pagamento em homologação, campanha
+pronta esperando textos, e os dois pontos travados são logística e fiscal.
+
+Marina: Perfeito. Semana que vem a gente revisa. Obrigada, pessoal.

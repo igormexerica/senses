@@ -1,0 +1,16 @@
+{# Template de referência (opcional).
+   Na v1 a renderização é feita em src/render.py (sem dependência de Jinja).
+   Mantido aqui apenas para evolução futura / customização visual da ata. #}
+# 📋 Ata de Reunião — Casa Senses (E-commerce B2C)
+
+**Data:** {{ ata.data }}
+**Participantes:** {{ ata.participantes | join(", ") }}
+
+## Status Geral
+- **Farol (RAG):** {{ ata.status_geral.rag }}
+- **Conclusão:** {{ ata.status_geral.conclusao_pct }}
+- **No prazo:** {{ ata.status_geral.no_prazo }}
+> {{ ata.status_geral.resumo }}
+
+{# corpo oficial termina em 'Pontos a Confirmar';
+   observacoes_do_agente vão num apêndice separado — ver render.py #}
