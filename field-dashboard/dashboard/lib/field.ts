@@ -378,3 +378,27 @@ export const getApontamentosPorTagMes = (mes: string) =>
     mes_referencia: `eq.${mes}`,
     order: "qtd.desc",
   });
+
+export interface ApontamentoDetalhe {
+  mes_referencia: string;
+  tag: string;
+  cliente_id: string;
+  cliente_nome: string;
+  cliente_codigo: string;
+  os_codigo: string;
+  os_tipo: string | null;
+  os_status: string | null;
+  concluida_em: string | null;
+  comentario: string | null;
+  acao_sugerida: string | null;
+  sumario: string | null;
+}
+
+/** Drill-down de uma tag no mês: clientes + comentário do técnico + ação sugerida da IA. */
+export const getApontamentoDetalhe = (mes: string, tag: string) =>
+  fieldGet<ApontamentoDetalhe>("v_apontamentos_detalhe", {
+    mes_referencia: `eq.${mes}`,
+    tag: `eq.${tag}`,
+    order: "cliente_nome.asc",
+    limit: "500",
+  });

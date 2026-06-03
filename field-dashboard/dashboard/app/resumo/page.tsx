@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import {
   getEvolucao,
   getAtivacoesMes,
@@ -160,9 +161,13 @@ export default async function ResumoPage({
             <ul className="space-y-2.5">
               {topTags.map((t) => (
                 <li key={t.tag} className="flex items-center gap-3">
-                  <span className="w-40 shrink-0 truncate text-sm text-slate-700" title={t.tag}>
+                  <Link
+                    href={`/apontamentos?mes=${mes}&tag=${encodeURIComponent(t.tag)}`}
+                    className="w-40 shrink-0 truncate text-sm text-slate-700 hover:text-brand-600 hover:underline print:text-slate-700 print:no-underline"
+                    title={`Ver clientes — ${t.tag}`}
+                  >
                     {t.tag}
-                  </span>
+                  </Link>
                   <div className="h-5 flex-1 overflow-hidden rounded bg-slate-100">
                     <div
                       className="flex h-full min-w-[1.5rem] items-center justify-end rounded bg-brand-500 px-1.5 text-[11px] font-semibold tabular-nums text-white"
