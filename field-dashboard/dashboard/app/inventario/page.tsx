@@ -73,7 +73,7 @@ export default async function InventarioPage() {
                           naoIdent ? "italic text-slate-400" : "text-slate-800"
                         }`}
                       >
-                        {naoIdent ? "Não identificado" : m.modelo}
+                        {naoIdent ? "Não-Senses (própria)" : m.modelo}
                       </span>
                       <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
                         {num(m.total)}

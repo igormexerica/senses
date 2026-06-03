@@ -62,7 +62,7 @@ export function InventarioClienteTable({ rows }: { rows: InventarioCliente[] }) 
                         .sort((a, b) => b[1] - a[1])
                         .map(([modelo, qtd]) => (
                           <Tag key={modelo}>
-                            {modelo === "NÃO IDENTIFICADO" ? "n/ident." : modelo}
+                            {modelo === "NÃO IDENTIFICADO" ? "não-Senses" : modelo}
                             <span className="ml-1 text-slate-400">×{qtd}</span>
                           </Tag>
                         ))}
