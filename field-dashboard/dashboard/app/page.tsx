@@ -119,7 +119,7 @@ export default async function OverviewPage({
             {churn.map((a) => (
               <li key={a.avaliacao_id} className="px-4 py-2.5 sm:px-5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-medium text-slate-800">{a.cliente_nome ?? "—"}</span>
+                  <span className="min-w-0 truncate text-sm font-medium text-slate-800">{a.cliente_nome ?? "—"}</span>
                   <span className="flex shrink-0 items-center gap-2 text-xs text-slate-400">
                     <span className="font-semibold text-red-600">nota {a.nota ?? "—"}</span>
                     {a.tier && <Tag>{a.tier}</Tag>}
@@ -154,7 +154,7 @@ export default async function OverviewPage({
         <Stat label="Risco de churn" value={num(avaliacoes.length)} sub="avaliações ≤ 3" tone={avaliacoes.length > 0 ? "bad" : "good"} />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:mt-6 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:mt-6 lg:grid-cols-2">
         <Card>
           <CardTitle hint={mesLabel(mes)}>Cobertura do mês</CardTitle>
           <div className="space-y-5 p-4 sm:p-5">
@@ -176,7 +176,7 @@ export default async function OverviewPage({
               {aAgir.map(({ g, e }) => (
                 <li key={g.expectativa_id} className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5">
                   <div className="min-w-0">
-                    <Link href={`/cliente/${g.cliente_id}`} className="truncate text-sm font-medium text-slate-800 hover:text-brand-600 hover:underline">
+                    <Link href={`/cliente/${g.cliente_id}`} className="block truncate text-sm font-medium text-slate-800 hover:text-brand-600 hover:underline">
                       {g.cliente_nome}
                     </Link>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1">

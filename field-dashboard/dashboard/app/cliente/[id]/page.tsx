@@ -113,7 +113,7 @@ export default async function ClientePage({
         <Stat label="Gaps abertos" value={num(gaps.length)} tone={gaps.length ? "warn" : "good"} />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:mt-6 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:mt-6 lg:grid-cols-2">
         <Card>
           <CardTitle hint={`${num(maquinasAtivas.length)} em uso`}>Máquinas</CardTitle>
           {equip.length === 0 ? (
@@ -121,12 +121,12 @@ export default async function ClientePage({
           ) : (
             <ul className="divide-y divide-slate-50">
               {equip.map((e) => (
-                <li key={e.id} className={`flex items-center justify-between px-4 py-2.5 sm:px-5 ${e.archived ? "opacity-50" : ""}`}>
-                  <span className="text-sm text-slate-700">
+                <li key={e.id} className={`flex items-center justify-between gap-2 px-4 py-2.5 sm:px-5 ${e.archived ? "opacity-50" : ""}`}>
+                  <span className="min-w-0 truncate text-sm text-slate-700">
                     {e.modelo ?? <span className="italic text-slate-400">{e.nome || "sem nome"}</span>}
                     {e.cor && <span className="ml-1 text-slate-400">· {e.cor.toLowerCase()}</span>}
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="shrink-0 text-xs text-slate-400">
                     {e.numero ? `#${e.numero}` : ""}{e.archived ? " · arquivada" : ""}
                   </span>
                 </li>
@@ -145,10 +145,10 @@ export default async function ClientePage({
                 const p = planoPorExp.get(g.expectativa_id);
                 return (
                   <li key={g.expectativa_id} className="flex items-center justify-between gap-2 px-4 py-2.5 sm:px-5">
-                    <span className="text-sm capitalize text-slate-700">
+                    <span className="min-w-0 truncate text-sm capitalize text-slate-700">
                       {g.tipo} · {mesLabel(g.mes_referencia)}
                     </span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex shrink-0 items-center gap-1.5">
                       <PrioridadeBadge value={g.criticidade} />
                       {p ? (
                         <Tag>{p.status.replace(/_/g, " ")}</Tag>
@@ -171,8 +171,8 @@ export default async function ClientePage({
             <ul className="divide-y divide-slate-50">
               {os.map((o) => (
                 <li key={o.id} className="flex items-center justify-between gap-2 px-4 py-2.5 sm:px-5">
-                  <span className="truncate text-sm text-slate-700">{o.tipo ?? "—"}</span>
-                  <span className="flex items-center gap-2 text-xs text-slate-400">
+                  <span className="min-w-0 truncate text-sm text-slate-700">{o.tipo ?? "—"}</span>
+                  <span className="flex shrink-0 items-center gap-2 text-xs text-slate-400">
                     <span className="capitalize">{o.status ?? "—"}</span>
                     <span>{dataCurta(o.concluida_em ?? o.criada_em)}</span>
                   </span>

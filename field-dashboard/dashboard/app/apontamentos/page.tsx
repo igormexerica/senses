@@ -111,7 +111,7 @@ export default async function ApontamentosPage({
       </div>
 
       <Card className="mb-4 border-brand-200 bg-brand-50/40">
-        <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
+        <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">O que significa</div>
             <p className="mt-1 text-sm text-slate-700">{pb.significado}</p>
@@ -136,11 +136,11 @@ export default async function ApontamentosPage({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link
                     href={`/cliente/${r.cliente_id}`}
-                    className="text-sm font-medium text-slate-800 hover:text-brand-600 hover:underline"
+                    className="min-w-0 break-words text-sm font-medium text-slate-800 hover:text-brand-600 hover:underline"
                   >
                     {r.cliente_nome}
                   </Link>
-                  <span className="flex shrink-0 items-center gap-1.5 text-xs text-slate-400">
+                  <span className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
                     {r.os_tipo && <Tag>{r.os_tipo}</Tag>}
                     {r.os_status && <span>{r.os_status}</span>}
                     {r.concluida_em && <span>{dataCurta(r.concluida_em)}</span>}

@@ -56,7 +56,7 @@ export default async function InventarioPage() {
         />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:mt-6 lg:grid-cols-5">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:mt-6 lg:grid-cols-5">
         <Card className="lg:col-span-2">
           <CardTitle hint={`${num(frota)} máquinas`}>Frota por modelo</CardTitle>
           {modelos.length === 0 ? (
@@ -69,7 +69,7 @@ export default async function InventarioPage() {
                   <li key={m.modelo} className="px-4 py-3 sm:px-5">
                     <div className="flex items-baseline justify-between gap-3">
                       <span
-                        className={`truncate text-sm font-medium ${
+                        className={`min-w-0 truncate text-sm font-medium ${
                           naoIdent ? "italic text-slate-400" : "text-slate-800"
                         }`}
                       >
