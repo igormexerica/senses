@@ -4,6 +4,7 @@ import {
   getEvolucao,
   getAtivacoesMes,
   getApontamentosPorTagMes,
+  getAvaliacaoMensal,
   type EvolucaoMensal,
 } from "@/lib/field";
 import {
@@ -68,11 +69,13 @@ export default async function ResumoPage({
   let ativ: Awaited<ReturnType<typeof getAtivacoesMes>>;
   let ativPrev: Awaited<ReturnType<typeof getAtivacoesMes>>;
   let tags: Awaited<ReturnType<typeof getApontamentosPorTagMes>>;
+  let avalMensal: Awaited<ReturnType<typeof getAvaliacaoMensal>>;
   try {
-    [ativ, ativPrev, tags] = await Promise.all([
+    [ativ, ativPrev, tags, avalMensal] = await Promise.all([
       getAtivacoesMes(mes),
       getAtivacoesMes(prev),
       getApontamentosPorTagMes(mes),
+      getAvaliacaoMensal(),
     ]);
   } catch (error) {
     return (
@@ -85,6 +88,8 @@ export default async function ResumoPage({
 
   const ativacoes = ativ[0]?.ativacoes ?? 0;
   const ativacoesPrev = ativPrev[0]?.ativacoes ?? 0;
+  // Risco de churn = avaliações ≤3 no mês (month-scoped, de v_avaliacao_mensal).
+  const criticas = avalMensal.find((a) => a.mes_referencia === mes)?.criticas ?? 0;
 
   const sel = (tipo: "visita" | "refil") =>
     evo.find((r) => r.mes_referencia === mes && r.tipo === tipo);
@@ -119,8 +124,8 @@ export default async function ResumoPage({
         }
       />
 
-      {/* Olhar de 5 segundos — 3 cards grandes */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* Olhar de 5 segundos — 4 cards grandes */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <BigStat
           label="Ativações no mês"
           value={num(ativacoes)}
@@ -147,6 +152,12 @@ export default async function ResumoPage({
             sub="sem ciclo de refil neste mês"
           />
         )}
+        <BigStat
+          label="Risco de churn"
+          value={num(criticas)}
+          sub="avaliações ≤3 no mês"
+          tone={criticas > 0 ? "bad" : "good"}
+        />
       </div>
 
       {/* Apontamentos por tag */}
