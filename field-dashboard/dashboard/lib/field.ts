@@ -353,3 +353,28 @@ export const getMesesDisponiveis = async (): Promise<string[]> => {
   });
   return [...new Set(rows.map((r) => r.mes_referencia))];
 };
+
+// ---------------------------------------------------------------------------
+// Resumo executivo mensal (tela /resumo) — views novas em 14-resumo-mensal.sql
+// ---------------------------------------------------------------------------
+export interface AtivacoesMes {
+  mes_referencia: string;
+  ativacoes: number;
+}
+
+/** Ativações do mês = clientes distintos com instalação ou 1º envio concluído. */
+export const getAtivacoesMes = (mes: string) =>
+  fieldGet<AtivacoesMes>("v_ativacoes_mes", { mes_referencia: `eq.${mes}` });
+
+export interface ApontamentoTag {
+  mes_referencia: string;
+  tag: string;
+  qtd: number;
+}
+
+/** Apontamentos por tag de OS no mês (desc). */
+export const getApontamentosPorTagMes = (mes: string) =>
+  fieldGet<ApontamentoTag>("v_apontamentos_por_tag_mes", {
+    mes_referencia: `eq.${mes}`,
+    order: "qtd.desc",
+  });

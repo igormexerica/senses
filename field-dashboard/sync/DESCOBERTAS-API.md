@@ -206,3 +206,25 @@ conferir contra a operação real e a gente ajusta.
 
 Labels em CAIXA-ALTA duplicadas (`COMODATO`, `REMOTO`…), meses (`02/2026`…) e operacionais
 (`Alerta`, `Crítico`…) têm 0 clientes — são legado ou escopo-OS.
+
+## Decisão "máquina ativada" (tela /resumo, 2026-06-03)
+
+A gestora pediu "máquinas ativadas no mês" no Resumo Executivo. Não há data de
+instalação no inventário de equipamentos (`equipamentos.created_at` = hora do sync,
+não do Field) e a API não liga OS↔equipamento → a única fonte temporal é a OS.
+
+**Definição adotada:** `v_ativacoes_mes` = **clientes distintos** com OS **concluída** de
+instalação OU primeiro envio no mês, dos `tipo`:
+`INSTALAÇÃO PRESENCIAL`, `INSTALAÇÃO REMOTA`, `INSTALAÇÃO CONTRATO PILOTO`,
+`INSTALAÇÃO CONTRATO PILOTO REMOTO`, `PRIMEIRO ENVIO`.
+
+- **Por que dedup por cliente:** o cliente remoto costuma ter `INSTALAÇÃO REMOTA` **e**
+  `PRIMEIRO ENVIO` no mesmo mês (59 sobreposições observadas set/2025–mai/2026) → somar
+  contaria 2×. `COUNT(DISTINCT cliente_id)` resolve.
+- **Honestidade:** conta **clientes/OS de ativação**, não unidades físicas de máquina (uma
+  OS pode cobrir 1+ máquinas). A tela rotula "Ativações no mês" (não "Máquinas ativadas")
+  e traz nota: "considera clientes com instalação ou primeiro envio concluído no mês, sem
+  dupla contagem".
+- **Opções descartadas:** só `INSTALAÇÃO` (sem primeiro envio) subestima o remoto; somar
+  remota+envio sem dedup superestima; só presencial ignora todo o remoto.
+- **Números (concluídas):** jan 28 · fev 25 · mar 47 · abr 34 · mai 25.

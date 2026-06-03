@@ -22,3 +22,28 @@ html {
   overflow-x: auto;
   scrollbar-width: thin;
 }
+
+/* Foco visível por teclado em links/botões (a11y). select/input já têm o seu. */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+/* Print (Resumo Executivo): fundo branco, margens A4, sem quebrar cards.
+   A sidebar/header/botões usam print:hidden no markup. */
+@page {
+  margin: 12mm;
+}
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  /* sem isso o navegador imprime em "economy" e descarta os fundos:
+     as barras (bg-brand-500) + número branco virariam branco-no-branco. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

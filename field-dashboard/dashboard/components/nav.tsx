@@ -1,67 +1,49 @@
-"use client";
+// Estrutura da navegação (dados puros — o render fica em components/sidebar.tsx).
+// Agrupado por intenção de uso. Preserva TODAS as telas existentes + Resumo.
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+export interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+}
 
-export const LINKS = [
-  { href: "/", label: "Visão geral", icon: "◆" },
-  { href: "/evolucao", label: "Evolução", icon: "📈" },
-  { href: "/atividade", label: "Atividade", icon: "▦" },
-  { href: "/inventario", label: "Inventário", icon: "▤" },
-  { href: "/gaps", label: "Gaps do mês", icon: "▲" },
-  { href: "/acoes", label: "Ações", icon: "✓" },
-  { href: "/revisar", label: "Revisar", icon: "⚑" },
-  { href: "/avaliacoes", label: "Avaliações", icon: "★" },
+export interface NavGroup {
+  label?: string; // sem label = item(ns) solto(s) no topo
+  items: NavItem[];
+}
+
+export const GROUPS: NavGroup[] = [
+  { items: [{ href: "/", label: "Visão geral", icon: "◆" }] },
+  {
+    label: "Operação",
+    items: [
+      { href: "/gaps", label: "Gaps do mês", icon: "▲" },
+      { href: "/acoes", label: "Ações", icon: "✓" },
+      { href: "/revisar", label: "Revisar", icon: "⚑" },
+    ],
+  },
+  {
+    label: "Clientes",
+    items: [
+      { href: "/avaliacoes", label: "Avaliações", icon: "★" },
+      { href: "/inventario", label: "Inventário", icon: "▤" },
+    ],
+  },
+  {
+    label: "Análise",
+    items: [
+      { href: "/resumo", label: "Resumo executivo", icon: "📄" },
+      { href: "/evolucao", label: "Evolução", icon: "📈" },
+      { href: "/atividade", label: "Atividade", icon: "▦" },
+    ],
+  },
+];
+
+// Itens soltos no rodapé do menu (referência/ajuda).
+export const FOOTER_ITEMS: NavItem[] = [
   { href: "/processos", label: "Processos", icon: "❔" },
 ];
 
-function isActive(pathname: string, href: string) {
+export function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
-}
-
-export function NavLinks({ variant }: { variant: "sidebar" | "top" }) {
-  const pathname = usePathname();
-  if (variant === "sidebar") {
-    return (
-      <nav className="flex flex-col gap-1">
-        {LINKS.map((l) => {
-          const active = isActive(pathname, l.href);
-          return (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                active
-                  ? "bg-brand-600 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              }`}
-            >
-              <span className="w-4 text-center text-xs opacity-80">{l.icon}</span>
-              {l.label}
-            </Link>
-          );
-        })}
-      </nav>
-    );
-  }
-  return (
-    <nav className="flex gap-1 overflow-x-auto scroll-x">
-      {LINKS.map((l) => {
-        const active = isActive(pathname, l.href);
-        return (
-          <Link
-            key={l.href}
-            href={l.href}
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              active
-                ? "bg-brand-600 text-white"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            {l.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
 }
