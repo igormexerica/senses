@@ -110,6 +110,8 @@ export interface AvaliacaoCritica {
   acao_sugerida: string | null;
   sumario: string | null;
   analisada_em: string | null;
+  cliente_id: string;
+  mes_referencia: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,8 +135,9 @@ export const getInventarioCliente = (limit = 1000) =>
     limit: String(limit),
   });
 
-export const getAvaliacoesCriticas = (limit = 200) =>
+export const getAvaliacoesCriticas = (limit = 200, mes?: string) =>
   fieldGet<AvaliacaoCritica>("v_avaliacoes_criticas", {
+    ...(mes ? { mes_referencia: `eq.${mes}` } : {}),
     order: "data_avaliacao.desc",
     limit: String(limit),
   });

@@ -157,6 +157,7 @@ export default async function ResumoPage({
           value={num(criticas)}
           sub="avaliações ≤3 no mês"
           tone={criticas > 0 ? "bad" : "good"}
+          href={criticas > 0 ? `/avaliacoes?mes=${mes}` : undefined}
         />
       </div>
 
@@ -212,12 +213,14 @@ function BigStat({
   sub,
   tone = "default",
   note,
+  href,
 }: {
   label: string;
   value: ReactNode;
   sub?: ReactNode;
   tone?: Tone;
   note?: string;
+  href?: string;
 }) {
   const toneCls = {
     default: "text-slate-900",
@@ -225,8 +228,8 @@ function BigStat({
     warn: "text-amber-600",
     bad: "text-red-600",
   }[tone];
-  return (
-    <Card className="flex flex-col p-5 print:break-inside-avoid print:shadow-none">
+  const inner = (
+    <>
       <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
       <div className={`mt-2 text-4xl font-bold tabular-nums sm:text-5xl ${toneCls}`}>{value}</div>
       {sub && <div className="mt-1.5 text-sm text-slate-500">{sub}</div>}
@@ -235,6 +238,23 @@ function BigStat({
           {note}
         </div>
       )}
-    </Card>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="group block h-full rounded-xl">
+        <Card className="flex h-full flex-col p-5 transition-colors group-hover:border-brand-300 group-hover:bg-brand-50/30 print:break-inside-avoid print:shadow-none">
+          {inner}
+          <span className="mt-2 text-xs font-medium text-brand-600 group-hover:underline print:hidden">
+            ver clientes →
+          </span>
+        </Card>
+      </Link>
+    );
+  }
+
+  return (
+    <Card className="flex h-full flex-col p-5 print:break-inside-avoid print:shadow-none">{inner}</Card>
   );
 }
