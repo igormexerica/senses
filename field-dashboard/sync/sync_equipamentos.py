@@ -68,13 +68,32 @@ def parse_modelo_cor(name: str | None) -> tuple[str | None, str | None]:
     return modelo, cor
 
 
-def _processar(supa: SupabaseClient, eq: dict) -> str:
+def construir_mapa_tipo(equips: list[dict]) -> dict[str, str]:
+    """type.id -> modelo. O modelo CONFIÁVEL mora no `type` do equipamento (não no
+    `name`, que em 35% é localização). Pra cada type, pega o modelo DOMINANTE entre
+    as máquinas cujo name tem modelo, e aplica a todas daquele type (conserta as
+    nomeadas por localização e os typos VENTHUS/SERANA). Tipos sem nenhum name-modelo
+    (ex.: máquina própria do cliente / não-Senses) ficam de fora -> modelo NULL."""
+    from collections import defaultdict, Counter
+    cont: dict[str, Counter] = defaultdict(Counter)
+    for e in equips:
+        tid = (e.get("type") or {}).get("id")
+        m, _ = parse_modelo_cor(e.get("name"))
+        if tid and m:
+            cont[tid][m] += 1
+    return {tid: c.most_common(1)[0][0] for tid, c in cont.items()}
+
+
+def _processar(supa: SupabaseClient, eq: dict, tmap: dict[str, str]) -> str:
     """Upsert de um equipamento. Devolve 'ativo' | 'arquivado'."""
     codigo = str(eq["id"])
     cust = str((eq.get("customer") or {}).get("id") or "") or None
     loc = str((eq.get("location") or {}).get("id") or "") or None
     archived = bool(eq.get("archived", False))
-    modelo, cor = parse_modelo_cor(eq.get("name"))
+    _m, cor = parse_modelo_cor(eq.get("name"))
+    tid = (eq.get("type") or {}).get("id")
+    # modelo pelo TYPE (confiável); só cai pro name se o type não tiver modelo
+    modelo = tmap.get(tid) or _m
     supa.upsert_equipamento(
         codigo_field=codigo,
         cliente_codigo=cust,
@@ -94,9 +113,10 @@ def sync(field: FieldClient, supa: SupabaseClient, workers: int | None = None) -
     ativos = arquivados = 0
     try:
         equips = list(field.listar_equipamentos())
-        logger.info("Equipamentos: %d no Field (workers=%d)", len(equips), workers)
+        tmap = construir_mapa_tipo(equips)
+        logger.info("Equipamentos: %d no Field (%d tipos mapeados, workers=%d)", len(equips), len(tmap), workers)
         with ThreadPoolExecutor(max_workers=workers) as ex:
-            for res in ex.map(lambda e: _processar(supa, e), equips):
+            for res in ex.map(lambda e: _processar(supa, e, tmap), equips):
                 if res == "arquivado":
                     arquivados += 1
                 else:
