@@ -24,6 +24,21 @@ export const dynamic = "force-dynamic";
 
 const TOP_TAGS = 12;
 
+// Como cada métrica é calculada — usado no ⓘ de cada card (hover) e na legenda
+// do rodapé (que imprime; o ⓘ não imprime nem aparece no mobile sem hover).
+const CALC = {
+  ativacoes: "Clientes distintos com instalação ou primeiro envio concluído no mês (sem dupla contagem).",
+  visitas: "Visitas com OS criada ÷ visitas esperadas no mês (1 por cliente presencial).",
+  refis: "Refis com OS criada ÷ refis esperados no mês (1 por cliente remoto, meses ímpares).",
+  churn: "Avaliações com nota ≤ 3 registradas no mês.",
+};
+const LEGENDA: [string, string][] = [
+  ["Ativações no mês", CALC.ativacoes],
+  ["Cobertura de visitas", CALC.visitas],
+  ["Cobertura de refis", CALC.refis],
+  ["Risco de churn", CALC.churn],
+];
+
 /** Tags de período/lote ("02/2026", "maio/junho") não são apontamentos
  *  operacionais — todas contêm "/". Filtradas do resumo executivo. */
 function isPeriodoTag(tag: string): boolean {
@@ -41,9 +56,12 @@ function hojeBR(): string {
 export default async function ResumoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string }>;
+  searchParams: Promise<{ mes?: string; explicar?: string }>;
 }) {
   const sp = await searchParams;
+  // "como é calculado" só aparece com ?explicar=1 (mostrar pra gestora e ocultar
+  // depois sem redeploy). Default = resumo limpo.
+  const explicar = sp.explicar === "1";
 
   let evo: EvolucaoMensal[];
   try {
@@ -131,12 +149,14 @@ export default async function ResumoPage({
           value={num(ativacoes)}
           sub={ativSub}
           note="Clientes com instalação ou primeiro envio do mês, já concluídos — sem dupla contagem."
+          calc={explicar ? CALC.ativacoes : undefined}
         />
         <BigStat
           label="Cobertura de visitas"
           value={visita ? pct(visita.realizado_pct) : "—"}
           sub={visita ? `${num(visita.realizado)} de ${num(visita.total)} realizadas` : "sem dados no mês"}
           tone={toneCob(visita?.realizado_pct)}
+          calc={explicar ? CALC.visitas : undefined}
         />
         {refil && refil.total > 0 ? (
           <BigStat
@@ -144,12 +164,14 @@ export default async function ResumoPage({
             value={pct(refil.realizado_pct)}
             sub={`${num(refil.realizado)} de ${num(refil.total)} realizados`}
             tone={toneCob(refil.realizado_pct)}
+            calc={explicar ? CALC.refis : undefined}
           />
         ) : (
           <BigStat
             label="Cobertura de refis"
             value="—"
             sub="sem ciclo de refil neste mês"
+            calc={explicar ? CALC.refis : undefined}
           />
         )}
         <BigStat
@@ -158,6 +180,7 @@ export default async function ResumoPage({
           sub="avaliações ≤3 no mês"
           tone={criticas > 0 ? "bad" : "good"}
           href={criticas > 0 ? `/avaliacoes?mes=${mes}` : undefined}
+          calc={explicar ? CALC.churn : undefined}
         />
       </div>
 
@@ -200,6 +223,22 @@ export default async function ResumoPage({
         </div>
       </Card>
 
+      {explicar && (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-[11px] leading-snug text-slate-500 print:break-inside-avoid print:bg-white sm:p-5">
+          <div className="mb-1.5 font-semibold uppercase tracking-wide text-slate-400">
+            Como é calculado
+          </div>
+          <dl className="grid gap-1 sm:grid-cols-2">
+            {LEGENDA.map(([l, t]) => (
+              <div key={l}>
+                <dt className="inline font-medium text-slate-600">{l}: </dt>
+                <dd className="inline">{t}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+
       <footer className="mt-6 text-center text-xs text-slate-400">
         Senses Olfacts · gerado em {hojeBR()} · dados do Field Control
       </footer>
@@ -214,6 +253,7 @@ function BigStat({
   tone = "default",
   note,
   href,
+  calc,
 }: {
   label: string;
   value: ReactNode;
@@ -221,6 +261,7 @@ function BigStat({
   tone?: Tone;
   note?: string;
   href?: string;
+  calc?: string;
 }) {
   const toneCls = {
     default: "text-slate-900",
@@ -230,7 +271,18 @@ function BigStat({
   }[tone];
   const inner = (
     <>
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+        <span>{label}</span>
+        {calc && (
+          <span
+            title={calc}
+            aria-label={`Como é calculado: ${calc}`}
+            className="cursor-help text-sm normal-case text-slate-300 print:hidden"
+          >
+            ⓘ
+          </span>
+        )}
+      </div>
       <div className={`mt-2 text-4xl font-bold tabular-nums sm:text-5xl ${toneCls}`}>{value}</div>
       {sub && <div className="mt-1.5 text-sm text-slate-500">{sub}</div>}
       {note && (
