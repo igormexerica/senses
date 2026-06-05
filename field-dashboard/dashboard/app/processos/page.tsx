@@ -64,7 +64,26 @@ export default function ProcessosPage() {
             <p>Notas <strong>≤ 3</strong> são críticas. Um agente (Claude) classifica comentários e avaliações e gera alertas, empurrados no Telegram do gestor.</p>
           </Item>
           <Item titulo="De onde vêm os dados">
-            <p>Sincronizado do <strong>Field Control a cada 30 min</strong> (clientes, OS, avaliações, equipamentos). <strong>Cobertura e gaps são calculados aqui</strong> — não existem no Field.</p>
+            <p>Sincronizado do <strong>Field Control</strong>: OS e avaliações a cada <strong>~30 min</strong>; clientes, etiquetas e equipamentos a cada <strong>2–6 h</strong>. <strong>Cobertura, metas e gaps são calculados aqui</strong> — não existem prontos no Field. O dashboard só espelha e agrega, nunca escreve de volta no Field.</p>
+          </Item>
+        </div>
+      </Card>
+
+      <Card className="mt-4 lg:mt-6">
+        <CardTitle>De onde vêm os números do Resumo Executivo</CardTitle>
+        <div className="divide-y divide-slate-100">
+          <Item titulo="Ativações no mês">
+            <p>Origem: as <strong>Ordens de Serviço do Field</strong>. Conta <strong>clientes distintos</strong> com OS <strong>concluída</strong> de instalação (presencial / remota / piloto) ou <strong>primeiro envio</strong>, no mês.</p>
+            <p>O status “concluída” vem da <strong>tarefa</strong> da OS no Field; o mês é a <strong>data planejada</strong> da tarefa. Conta clientes/OS, não unidades físicas de máquina (a API não liga OS a uma máquina específica).</p>
+          </Item>
+          <Item titulo="Cobertura de visitas / refis">
+            <p><strong>Numerador</strong> (o que aconteceu): OS reais do Field — refil no Field é o serviço <strong>“Envio de Recarga”</strong>.</p>
+            <p><strong>Denominador</strong> (a meta): regra calculada aqui — <strong>1 visita/mês</strong> por cliente presencial e <strong>1 refil bimestral</strong> (meses ímpares) por cliente remoto. Presencial/remoto vem das <strong>etiquetas do cliente no Field</strong>.</p>
+            <p>% = <strong>realizado ÷ esperado</strong> (realizado = meta que já tem OS criada no mês).</p>
+          </Item>
+          <Item titulo="Risco de churn">
+            <p>Origem: as <strong>avaliações dos clientes no Field</strong> (nota 0–5 + comentário, coletadas após o atendimento). O número é quantas avaliações com <strong>nota ≤ 3</strong> no mês.</p>
+            <p>No detalhe (ao clicar): o “problema” é o <strong>comentário</strong> (vem do Field); a “ação sugerida” é gerada pelo <strong>agente de IA</strong> que lê os comentários — essa parte é nossa, não do Field.</p>
           </Item>
         </div>
       </Card>
