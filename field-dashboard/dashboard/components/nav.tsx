@@ -33,6 +33,7 @@ export const GROUPS: NavGroup[] = [
     label: "Análise",
     items: [
       { href: "/resumo", label: "Resumo executivo", icon: "📄" },
+      { href: "/comparativo", label: "Comparativo", icon: "⇄" },
       { href: "/evolucao", label: "Evolução", icon: "📈" },
       { href: "/atividade", label: "Atividade", icon: "▦" },
     ],
