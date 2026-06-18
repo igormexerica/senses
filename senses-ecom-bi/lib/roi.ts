@@ -30,7 +30,7 @@ export async function setMargemPct(v: number | null): Promise<void> {
 // --- CRUD de investimentos ---
 export async function listarInvestimentos(): Promise<Investimento[]> {
   const { rows } = await pool().query(
-    `select id, tipo, categoria, descricao, valor,
+    `select id, tipo, fornecedor, descricao, valor,
             to_char(vigencia_ini,'YYYY-MM-DD') as vigencia_ini,
             to_char(vigencia_fim,'YYYY-MM-DD') as vigencia_fim, criado_em
      from analytics.investimentos
@@ -39,7 +39,7 @@ export async function listarInvestimentos(): Promise<Investimento[]> {
   return (rows as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     tipo: r.tipo as TipoInvestimento,
-    categoria: String(r.categoria),
+    fornecedor: String(r.fornecedor),
     descricao: (r.descricao as string) ?? null,
     valor: toNum(r.valor) ?? 0,
     vigencia_ini: String(r.vigencia_ini),
@@ -50,7 +50,7 @@ export async function listarInvestimentos(): Promise<Investimento[]> {
 
 export async function criarInvestimento(inp: {
   tipo: TipoInvestimento;
-  categoria: string;
+  fornecedor: string;
   descricao?: string | null;
   valor: number;
   vigencia_ini: string;
@@ -59,9 +59,9 @@ export async function criarInvestimento(inp: {
   // pontual: vigência fim = início (mês de competência)
   const fim = inp.tipo === "pontual" ? inp.vigencia_ini : (inp.vigencia_fim || null);
   await pool().query(
-    `insert into analytics.investimentos (tipo, categoria, descricao, valor, vigencia_ini, vigencia_fim)
+    `insert into analytics.investimentos (tipo, fornecedor, descricao, valor, vigencia_ini, vigencia_fim)
      values ($1, $2, $3, $4, $5::date, $6::date)`,
-    [inp.tipo, inp.categoria, inp.descricao ?? null, inp.valor, inp.vigencia_ini, fim],
+    [inp.tipo, inp.fornecedor, inp.descricao ?? null, inp.valor, inp.vigencia_ini, fim],
   );
 }
 

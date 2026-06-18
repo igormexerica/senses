@@ -58,7 +58,7 @@ export type TipoInvestimento = "recorrente" | "pontual";
 export interface Investimento {
   id: string;
   tipo: TipoInvestimento;
-  categoria: string;
+  fornecedor: string;
   descricao: string | null;
   valor: number;
   vigencia_ini: string; // YYYY-MM-DD (dia 1 do mês)

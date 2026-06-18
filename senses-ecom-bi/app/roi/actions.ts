@@ -17,21 +17,21 @@ function mesParaIso(m: string): string | null {
 
 export async function criarInvestimentoAction(formData: FormData) {
   const tipo = String(formData.get("tipo") || "");
-  const categoria = String(formData.get("categoria") || "").trim();
+  const fornecedor = String(formData.get("fornecedor") || "").trim();
   const descricao = String(formData.get("descricao") || "").trim() || null;
   const valor = Number(String(formData.get("valor") || "").replace(/\./g, "").replace(",", "."));
   const ini = mesParaIso(String(formData.get("vigencia_ini") || ""));
   const fimRaw = String(formData.get("vigencia_fim") || "");
 
   if (tipo !== "recorrente" && tipo !== "pontual") throw new Error("Tipo inválido.");
-  if (!categoria) throw new Error("Categoria obrigatória.");
+  if (!fornecedor) throw new Error("Fornecedor obrigatório.");
   if (!Number.isFinite(valor) || valor < 0) throw new Error("Valor inválido.");
   if (!ini) throw new Error("Mês inválido.");
   const fim = tipo === "recorrente" && fimRaw ? mesParaIso(fimRaw) : null;
 
   await criarInvestimento({
     tipo: tipo as TipoInvestimento,
-    categoria,
+    fornecedor,
     descricao,
     valor,
     vigencia_ini: ini,

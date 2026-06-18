@@ -7,7 +7,7 @@
 create table if not exists analytics.investimentos (
   id           uuid primary key default gen_random_uuid(),
   tipo         text not null check (tipo in ('recorrente','pontual')),
-  categoria    text not null,
+  fornecedor   text not null,
   descricao    text,
   valor        numeric(14,2) not null check (valor >= 0),
   vigencia_ini date not null,          -- mês (dia 1) de início / competência

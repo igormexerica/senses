@@ -153,8 +153,8 @@ export function RoiView({ payload, investimentos }: { payload: RoiPayload; inves
             </select>
           </label>
           <label className="text-xs text-muted lg:col-span-1">
-            Categoria
-            <input name="categoria" required placeholder="Ads, Agência…" className={`mt-1 block w-full ${inputCls}`} />
+            Fornecedor
+            <input name="fornecedor" required placeholder="Google, Meta, Agência…" className={`mt-1 block w-full ${inputCls}`} />
           </label>
           <label className="text-xs text-muted lg:col-span-1">
             Valor {tipo === "recorrente" ? "(R$/mês)" : "(R$)"}
@@ -184,7 +184,7 @@ export function RoiView({ payload, investimentos }: { payload: RoiPayload; inves
               <thead>
                 <tr className="border-b border-line text-xs text-muted">
                   <th className="px-4 py-2.5 text-left font-medium">Tipo</th>
-                  <th className="px-3 py-2.5 text-left font-medium">Categoria</th>
+                  <th className="px-3 py-2.5 text-left font-medium">Fornecedor</th>
                   <th className="px-3 py-2.5 text-right font-medium">Valor</th>
                   <th className="px-3 py-2.5 text-left font-medium">Período</th>
                   <th className="px-3 py-2.5"></th>
@@ -198,7 +198,7 @@ export function RoiView({ payload, investimentos }: { payload: RoiPayload; inves
                         {i.tipo === "recorrente" ? "Recorrente" : "Pontual"}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-ink/80">{i.categoria}</td>
+                    <td className="px-3 py-2.5 text-ink/80">{i.fornecedor}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">
                       {brl(i.valor, true)}
                       {i.tipo === "recorrente" && <span className="text-xs text-muted">/mês</span>}
