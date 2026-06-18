@@ -162,11 +162,11 @@ export function RoiView({ payload, investimentos }: { payload: RoiPayload; inves
           </label>
           <label className="text-xs text-muted lg:col-span-1">
             {tipo === "recorrente" ? "Início" : "Mês"}
-            <input name="vigencia_ini" type="month" required className={`mt-1 block w-full ${inputCls}`} />
+            <input name="vigencia_ini" type="month" required placeholder="AAAA-MM" pattern="\d{4}-\d{2}" className={`mt-1 block w-full ${inputCls}`} />
           </label>
           <label className={`text-xs text-muted lg:col-span-1 ${tipo === "pontual" ? "invisible" : ""}`}>
             Fim (opcional)
-            <input name="vigencia_fim" type="month" disabled={tipo === "pontual"} className={`mt-1 block w-full ${inputCls}`} />
+            <input name="vigencia_fim" type="month" disabled={tipo === "pontual"} placeholder="AAAA-MM" pattern="\d{4}-\d{2}" className={`mt-1 block w-full ${inputCls}`} />
           </label>
           <button type="submit" className="h-[38px] rounded-lg bg-aubergine-800 px-3 text-sm font-semibold text-white shadow-sm hover:bg-aubergine-900 lg:col-span-1">
             Adicionar

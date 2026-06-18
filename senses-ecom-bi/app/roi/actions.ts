@@ -6,8 +6,12 @@ import type { TipoInvestimento } from "@/lib/types";
 
 /** "YYYY-MM" (input month) ou "YYYY-MM-DD" → dia 1 do mês. */
 function mesParaIso(m: string): string | null {
+  m = (m || "").trim();
   if (/^\d{4}-\d{2}$/.test(m)) return `${m}-01`;
   if (/^\d{4}-\d{2}-\d{2}$/.test(m)) return `${m.slice(0, 7)}-01`;
+  if (/^\d{4}\/\d{2}$/.test(m)) return `${m.replace("/", "-")}-01`; // AAAA/MM
+  const br = m.match(/^(\d{1,2})\/(\d{4})$/); // MM/AAAA
+  if (br) return `${br[2]}-${br[1].padStart(2, "0")}-01`;
   return null;
 }
 
