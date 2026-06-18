@@ -29,13 +29,21 @@ Tunnel id: `41c382f6-0955-444d-ab1e-e5aca1a49569` → alvo
 `41c382f6-0955-444d-ab1e-e5aca1a49569.cfargotunnel.com`.
 ⚠️ Apontar pro túnel errado = erro 1033 sem logs.
 
-## 2. Cloudflare Access (VOCÊ, painel) — barra por e-mail
-Zero Trust → **Access → Applications → Add → Self-hosted**:
-- Domain: `bi.ifops.com.br`
-- **Policy → Allow**: e-mails da diretoria **ou** `Emails ending in @gruposenses.com.br`
-- Login: One-time PIN (e-mail) ou Google.
+## 2. Acesso — Basic Auth, login POR PESSOA (no app, sem painel)
+Proteção feita no próprio app (`proxy.ts` + `lib/auth.ts`), via `DASHBOARD_USERS`
+no `.env` (`email:senha,email:senha,...`). Sem senha única compartilhada; senhas
+alfanuméricas (sem `:`/`,`). O shell mostra o e-mail do usuário logado.
 
-O app já lê `Cf-Access-Authenticated-User-Email` pra mostrar quem está logado.
+**Adicionar uma pessoa:**
+```bash
+cd /root/senses/senses-ecom-bi
+PASS=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)   # senha forte
+# anexar ",email:senha" à linha DASHBOARD_USERS do .env (cuidado: 1 linha só)
+sed -i "/^DASHBOARD_USERS=/ s#\$#,fulano@gruposenses.com.br:$PASS#" .env
+docker compose up -d   # recria o container lendo o .env
+# guardar a senha em /root/senses-ecom-bi-senhas.txt (chmod 600) — NÃO em chat
+```
+Credenciais atuais ficam em `/root/senses-ecom-bi-senhas.txt` (fora do repo, chmod 600).
 
 ## 3. Segredos → dados (PRECISA de você)
 Editar `/root/senses/senses-ecom-bi/.env` (fora do git):
@@ -71,6 +79,6 @@ systemctl list-timers 'senses-ingest-*' --no-pager
 ---
 
 ## Resumo — o que falta de você
-1. **CNAME** `bi.ifops.com.br` (passo 1) + **Access policy** (passo 2) — painel Cloudflare.
+1. ✅ **CNAME** `bi.ifops.com.br` — feito. ✅ **Acesso** — Basic Auth por pessoa ativo (Igor já tem login; me passe os outros e-mails da diretoria pra eu gerar as senhas).
 2. **Segredos** (passo 3): senha do Postgres, token+store Nuvemshop, property_id+JSON GA4.
 Com isso eu rodo schema + ingest e a tela passa a mostrar dados reais.

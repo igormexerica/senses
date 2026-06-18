@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { ultimaAtualizacao } from "@/lib/db";
+import { usuarioBasic } from "@/lib/auth";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -25,8 +26,8 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const h = await headers();
-  // Cloudflare Access injeta o e-mail do usuário autenticado neste header.
-  const user = h.get("cf-access-authenticated-user-email");
+  // Usuário do Basic Auth (login por pessoa) — só o login, nunca a senha.
+  const user = usuarioBasic(h.get("authorization"));
 
   // "Última atualização" no header do shell. Resiliente: sem DATABASE_URL ou banco
   // indisponível → null (app não quebra; a tela mostra o estado de erro).
