@@ -124,6 +124,18 @@ export function RoiView({ payload, investimentos }: { payload: RoiPayload; inves
   const temMargem = payload.margem_pct != null;
   const roiTone = (v: number | null) => (v == null ? "default" : v >= 0 ? "good" : "bad");
 
+  // Custo fixo mensal = recorrentes ATIVOS no mês corrente (produtos não entram — variáveis).
+  const margem = payload.margem_pct;
+  const ymAtual = (payload.meses[payload.meses.length - 1]?.mes ?? "").slice(0, 7);
+  const custoFixoMensal = investimentos
+    .filter((i) => i.tipo === "recorrente" && i.vigencia_ini.slice(0, 7) <= ymAtual && (!i.vigencia_fim || i.vigencia_fim.slice(0, 7) >= ymAtual))
+    .reduce((s, i) => s + i.valor, 0);
+  const mesesSet = new Set(payload.meses.map((m) => m.mes.slice(0, 7)));
+  const pontuaisPeriodo = investimentos
+    .filter((i) => i.tipo === "pontual" && mesesSet.has(i.vigencia_ini.slice(0, 7)))
+    .reduce((s, i) => s + i.valor, 0);
+  const breakEven = margem != null && margem > 0 ? custoFixoMensal / (margem / 100) : null;
+
   const chartData = payload.meses.map((m) => ({
     mes: m.mes,
     receita: m.receita,
@@ -158,6 +170,27 @@ export function RoiView({ payload, investimentos }: { payload: RoiPayload; inves
           </button>
         </form>
       </div>
+
+      {/* Custo fixo mensal (run-rate da operação) */}
+      <Card className="mb-4 flex flex-wrap items-end justify-between gap-4 p-4 sm:p-5">
+        <div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted">Custo fixo mensal</div>
+          <div className="mt-1 font-display text-3xl font-semibold text-aubergine-900 sm:text-4xl">
+            {brl(custoFixoMensal)}
+            <span className="text-base font-normal text-muted"> /mês</span>
+          </div>
+          <div className="mt-0.5 text-xs text-muted">
+            recorrentes ativos · produtos não entram (variável){pontuaisPeriodo > 0 ? ` · + ${brl(pontuaisPeriodo)} pontuais no período` : ""}
+          </div>
+        </div>
+        {breakEven != null && custoFixoMensal > 0 && (
+          <div className="text-left sm:text-right">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted">Break-even / mês</div>
+            <div className="mt-1 font-display text-2xl font-semibold text-aubergine-700 sm:text-3xl">{brl(breakEven)}</div>
+            <div className="mt-0.5 text-xs text-muted">faturar isso/mês só pra cobrir o fixo (margem {margem}%)</div>
+          </div>
+        )}
+      </Card>
 
       {/* Resumo */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
