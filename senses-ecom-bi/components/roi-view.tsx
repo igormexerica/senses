@@ -51,6 +51,73 @@ function StatCard({ label, value, sub, tone = "default" }: { label: string; valu
   );
 }
 
+/** Acumulado de um fornecedor sobre os meses exibidos (mesma régua da v_roi_mensal). */
+function acumFornecedor(i: Investimento, meses: string[]): number {
+  const ini = i.vigencia_ini.slice(0, 7);
+  const fim = i.vigencia_fim ? i.vigencia_fim.slice(0, 7) : null;
+  if (i.tipo === "pontual") return meses.some((m) => m.slice(0, 7) === ini) ? i.valor : 0;
+  return i.valor * meses.filter((m) => { const ym = m.slice(0, 7); return ym >= ini && (!fim || ym <= fim); }).length;
+}
+
+function Linha({ label, hint, valor, pct, forte, sub, tone }: { label: string; hint?: string; valor: number; pct: string; forte?: boolean; sub?: boolean; tone?: "good" | "bad" }) {
+  const cls = tone === "good" ? "text-emerald-600" : tone === "bad" ? "text-red-600" : sub ? "text-muted" : forte ? "text-aubergine-900" : "text-ink/80";
+  return (
+    <tr className="border-b border-line/50 last:border-0">
+      <td className={`px-4 py-2 ${sub ? "pl-8 text-sm text-muted" : forte ? "font-semibold text-aubergine-900" : "text-ink/80"}`}>
+        {label}
+        {hint && <span className="ml-1.5 text-xs text-muted">· {hint}</span>}
+      </td>
+      <td className={`px-3 py-2 text-right tabular-nums ${cls} ${forte ? "font-semibold" : ""}`}>{brl(valor)}</td>
+      <td className="px-3 py-2 text-right text-xs tabular-nums text-muted">{pct}</td>
+    </tr>
+  );
+}
+
+function Composicao({ payload, investimentos }: { payload: RoiPayload; investimentos: Investimento[] }) {
+  const receita = payload.resumo.receita_acum;
+  const margem = payload.margem_pct;
+  const meses = payload.meses.map((m) => m.mes);
+  const pr = (v: number) => (receita > 0 ? `${((Math.abs(v) / receita) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—");
+  const forn = investimentos
+    .map((i) => ({ nome: i.fornecedor, valor: acumFornecedor(i, meses) }))
+    .filter((f) => f.valor > 0)
+    .sort((a, b) => b.valor - a.valor);
+  const totalForn = payload.resumo.investimento_acum;
+  const margemContrib = payload.resumo.lucro_acum; // receita × margem%
+  const custoProduto = margem != null && margemContrib != null ? receita - margemContrib : null;
+  const resultado = margem != null && margemContrib != null ? margemContrib - totalForn : receita - totalForn;
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="scroll-x">
+        <table className="w-full min-w-[440px] text-sm">
+          <tbody>
+            <Linha label="Receita" valor={receita} pct="100%" forte />
+            {custoProduto != null && (
+              <Linha label="(−) Custo dos produtos" hint={`margem ${margem}%`} valor={-custoProduto} pct={pr(custoProduto)} />
+            )}
+            {margemContrib != null && (
+              <Linha label="(=) Margem de contribuição" valor={margemContrib} pct={pr(margemContrib)} forte />
+            )}
+            <Linha label="(−) Fornecedores fixos" valor={-totalForn} pct={pr(totalForn)} />
+            {forn.map((f) => (
+              <Linha key={f.nome} label={f.nome} valor={-f.valor} pct={pr(f.valor)} sub />
+            ))}
+            <Linha
+              label={margemContrib != null ? "(=) Resultado" : "(=) Sobra após fornecedores"}
+              hint={margemContrib != null ? undefined : "defina a margem p/ ver o lucro real"}
+              valor={resultado}
+              pct={pr(resultado)}
+              forte
+              tone={resultado >= 0 ? "good" : "bad"}
+            />
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 export function RoiView({ payload, investimentos }: { payload: RoiPayload; investimentos: Investimento[] }) {
   const [tipo, setTipo] = useState<"recorrente" | "pontual">("recorrente");
   const r = payload.resumo;
@@ -139,6 +206,10 @@ export function RoiView({ payload, investimentos }: { payload: RoiPayload; inves
           </div>
         )}
       </Card>
+
+      {/* Composição da receita */}
+      <SectionTitle hint="pra onde vai cada R$ da receita (acumulado)">Composição da receita</SectionTitle>
+      <Composicao payload={payload} investimentos={investimentos} />
 
       {/* Investimentos */}
       <SectionTitle hint="recorrentes (mensais) + pontuais">Investimentos</SectionTitle>
