@@ -51,3 +51,42 @@ export interface Comparativo {
   deltas: { p2_p1: DeltasPar; p3_p2: DeltasPar; p3_p1: DeltasPar };
   ultima_atualizacao: string | null;
 }
+
+// --- ROI / Investimentos ---
+export type TipoInvestimento = "recorrente" | "pontual";
+
+export interface Investimento {
+  id: string;
+  tipo: TipoInvestimento;
+  categoria: string;
+  descricao: string | null;
+  valor: number;
+  vigencia_ini: string; // YYYY-MM-DD (dia 1 do mês)
+  vigencia_fim: string | null; // recorrente: fim/null=em aberto; pontual: = ini
+  criado_em: string;
+}
+
+export interface RoiMes {
+  mes: string; // YYYY-MM-01
+  receita: number;
+  investimento: number;
+  receita_acum: number;
+  investimento_acum: number;
+  roi_receita_pct: number | null; // ROI mensal s/ receita
+  roi_receita_acum_pct: number | null; // ROI acumulado s/ receita (a "evolução")
+  lucro_acum: number | null; // receita_acum × margem% (se margem definida)
+  roi_lucro_acum_pct: number | null; // ROI acumulado s/ lucro
+}
+
+export interface RoiPayload {
+  margem_pct: number | null;
+  meses: RoiMes[];
+  resumo: {
+    investimento_acum: number;
+    receita_acum: number;
+    lucro_acum: number | null;
+    roi_receita_acum_pct: number | null;
+    roi_lucro_acum_pct: number | null;
+    payback_mes: string | null; // 1º mês com receita_acum >= investimento_acum
+  };
+}

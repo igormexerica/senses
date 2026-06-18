@@ -1,8 +1,8 @@
 [Unit]
-Description=Senses BI — ingest Nuvemshop diário (~06:00, após fechamento do dia)
+Description=Senses BI — ingest Nuvemshop a cada 30 min (dia de hoje quase ao vivo)
 
 [Timer]
-OnCalendar=*-*-* 06:00:00
+OnCalendar=*:0/30
 Persistent=true
 
 [Install]

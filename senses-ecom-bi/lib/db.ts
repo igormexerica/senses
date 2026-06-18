@@ -14,7 +14,7 @@
  * taxas derivadas vêm `null` quando não há GA4 → o front mostra "sem dados".
  */
 import "server-only";
-import { Pool } from "pg";
+import { pool, toNum } from "./pg";
 import { validarPeriodo, type Periodo } from "./periodos";
 import type { Kpis, TrafegoRow, RetencaoRow, PeriodoData, DeltasPar, Comparativo } from "./types";
 
@@ -27,32 +27,6 @@ export type {
   DeltasPar,
   Comparativo,
 } from "./types";
-
-let _pool: Pool | null = null;
-function pool(): Pool {
-  if (_pool) return _pool;
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error(
-      "DATABASE_URL não configurada (server-only). Defina a connection string do " +
-        "Postgres do Supabase. Veja data/README.md.",
-    );
-  }
-  _pool = new Pool({
-    connectionString,
-    max: 4,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 8_000,
-  });
-  return _pool;
-}
-
-/** pg devolve numeric/bigint como string — normaliza p/ number|null. */
-function toNum(v: unknown): number | null {
-  if (v === null || v === undefined) return null;
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) ? n : null;
-}
 
 async function kpisPeriodo(p: Periodo): Promise<Kpis> {
   const { rows } = await pool().query(

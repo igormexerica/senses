@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ArrowDown, ArrowRight, ArrowUp, Loader2 } from "lucide-react";
 import {
@@ -24,6 +24,11 @@ import {
   type Preset,
 } from "@/lib/periodos";
 import type { Comparativo, Delta, Kpis, PeriodoData } from "@/lib/types";
+import { dataHora } from "@/lib/format";
+
+// O dia de hoje atualiza quase ao vivo: o ingest da Nuvemshop roda a cada ~30 min
+// e a tela re-busca sozinha neste intervalo (silencioso, sem piscar).
+const REFRESH_MS = 5 * 60 * 1000;
 
 // Escala de cor por tempo: claro (P1, antigo) → escuro (P3, agora). Paleta aubergine.
 const CORES = [
@@ -522,11 +527,37 @@ export function ComparativoView({
     }
   }
 
+  // Re-busca silenciosa do recorte atual (sem dim, sem mexer na URL) — pega o dia
+  // de hoje que o ingest atualiza a cada ~30 min. Pausa quando a aba não está visível.
+  useEffect(() => {
+    const id = setInterval(async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      try {
+        const res = await fetch(`/api/comparativo?${periodosParaQuery(periodos, preset)}`, { cache: "no-store" });
+        if (!res.ok) return;
+        setData((await res.json()) as Comparativo);
+        setError(null);
+      } catch {
+        /* refresh silencioso: ignora erro transitório */
+      }
+    }, REFRESH_MS);
+    return () => clearInterval(id);
+  }, [periodos, preset]);
+
   return (
     <>
       <div className="mb-6">
         <h1 className="font-display text-2xl font-semibold text-aubergine-900 sm:text-3xl">Comparativo de Performance</h1>
         <p className="mt-1 text-sm text-muted">E-commerce Senses · 3 períodos lado a lado</p>
+        {data && (
+          <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted">
+            <span className="relative flex h-2 w-2" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            ao vivo · última carga {dataHora(data.ultima_atualizacao)} · atualiza sozinho a cada 5 min
+          </div>
+        )}
       </div>
 
       <Seletor
