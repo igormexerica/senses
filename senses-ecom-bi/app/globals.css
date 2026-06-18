@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  /* Tipografia: Fraunces (display) + Hanken Grotesk (UI), injetadas via next/font. */
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Paleta aubergine (berinjela) — claro → escuro. A escala de cor por período
+     (P1→P3 = antigo→agora) usa 300 / 500 / 800. */
+  --color-aubergine-50: #faf5fb;
+  --color-aubergine-100: #f3e6f5;
+  --color-aubergine-200: #e6cdea;
+  --color-aubergine-300: #d3a9da;
+  --color-aubergine-400: #b87bc2;
+  --color-aubergine-500: #9d4ea8;
+  --color-aubergine-600: #823a8c;
+  --color-aubergine-700: #5f2a66;
+  --color-aubergine-800: #46153f;
+  --color-aubergine-900: #321031;
+
+  /* Neutros quentes + superfícies */
+  --color-cream: #faf7fb;
+  --color-surface: #ffffff;
+  --color-ink: #2a1a2e;
+  --color-muted: #7c6b80;
+  --color-line: #ece4ee;
+}
+
+html {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+/* foco visível por teclado (a11y) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-aubergine-600);
+  outline-offset: 2px;
+}
+
+.scroll-x {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}

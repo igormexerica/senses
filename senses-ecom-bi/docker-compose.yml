@@ -1,0 +1,35 @@
+# senses-ecom-bi — app autônomo em container.
+# Na rede supabase_default: alcança o Postgres (supabase-db:5432) e é resolvido
+# por DNS pelo cloudflared (que também está nessa rede) → sem porta no host, sem ufw.
+services:
+  web:
+    build: .
+    image: senses-ecom-bi:latest
+    container_name: senses-ecom-bi
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - supabase_default
+    expose:
+      - "3100"
+
+  # Pipeline de dados — roda sob demanda (profile tools), NÃO sobe com `up`.
+  # Na mesma rede → alcança supabase-db:5432. Scripts/credenciais vêm do bind ./data.
+  #   docker compose run --rm ingest ingest_nuvemshop.py --from 2026-04-01 --to 2026-06-16
+  ingest:
+    build:
+      context: ./data
+    image: senses-ecom-bi-ingest:latest
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app
+    networks:
+      - supabase_default
+    profiles:
+      - tools
+
+networks:
+  supabase_default:
+    external: true

@@ -35,4 +35,13 @@ ingress:
       noTLSVerify: true
       connectTimeout: 30s
 
+  # E-commerce BI (senses-ecom-bi) — Next standalone em container na rede
+  # supabase_default; cloudflared resolve por DNS interno. PROTEGER com Cloudflare
+  # Access antes de o CNAME ir pro ar (expõe dados de e-commerce da diretoria).
+  - hostname: bi.ifops.com.br
+    service: http://senses-ecom-bi:3100
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+
   - service: http_status:404

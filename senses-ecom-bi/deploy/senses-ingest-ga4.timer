@@ -1,0 +1,9 @@
+[Unit]
+Description=Senses BI — ingest GA4 diário (~06:05, após o financeiro)
+
+[Timer]
+OnCalendar=*-*-* 06:05:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

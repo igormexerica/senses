@@ -1,0 +1,13 @@
+[Unit]
+Description=Senses BI — ingest Nuvemshop (financeiro) via container
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/senses/senses-ecom-bi
+# Roda o ingest dentro do docker (rede supabase_default → alcança supabase-db).
+# Janela móvel de 3 dias; upsert idempotente recupera um dia que falhou.
+ExecStart=/bin/sh -c '/usr/bin/docker compose run --rm ingest ingest_nuvemshop.py --from "$(date -d "-3 days" +%%F)" --to "$(date -d "-1 day" +%%F)"'
+StandardOutput=journal
+StandardError=journal
