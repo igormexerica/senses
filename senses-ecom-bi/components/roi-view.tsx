@@ -172,7 +172,7 @@ export function RoiView({ payload, investimentos }: { payload: RoiPayload; inves
         <StatCard
           label="Payback"
           value={r.payback_mes ? mesLabel(r.payback_mes) : "—"}
-          sub={r.payback_mes ? "receita cobriu o investido" : "ainda não atingido"}
+          sub={r.payback_mes ? "acumulado no azul" : "ainda no vermelho"}
         />
       </div>
 

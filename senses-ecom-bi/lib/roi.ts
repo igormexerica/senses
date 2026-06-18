@@ -101,7 +101,18 @@ export async function roiEvolucao(): Promise<RoiPayload> {
   });
 
   const last = meses[meses.length - 1];
-  const payback = meses.find((m) => m.investimento_acum > 0 && m.receita_acum >= m.investimento_acum)?.mes ?? null;
+  // Saldo acumulado = (lucro se há margem, senão receita) − investimento. Payback só
+  // conta se está no AZUL agora; o mês é o início do último trecho contínuo positivo —
+  // evita falso positivo de meses iniciais com custo ~zero quando o custo dispara depois.
+  const saldo = (m: RoiMes) => (m.lucro_acum != null ? m.lucro_acum : m.receita_acum) - m.investimento_acum;
+  let payback: string | null = null;
+  if (last && last.investimento_acum > 0 && saldo(last) >= 0) {
+    payback = last.mes;
+    for (let k = meses.length - 2; k >= 0; k--) {
+      if (meses[k].investimento_acum > 0 && saldo(meses[k]) >= 0) payback = meses[k].mes;
+      else break;
+    }
+  }
 
   return {
     margem_pct: margem,
